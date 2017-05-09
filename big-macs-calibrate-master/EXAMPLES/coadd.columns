@@ -1,0 +1,4 @@
+MAG_ISO_g#$g$ MAGERR_ISO_g SDSS-g.res VARY
+MAG_ISO_r#$r$ MAGERR_ISO_r SDSS-r.res VARY
+MAG_ISO_i#$i$ MAGERR_ISO_i SDSS-i.res VARY
+MAG_ISO_z#$z$ MAGERR_ISO_z SDSS-z.res VARY

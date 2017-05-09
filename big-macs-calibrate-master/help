@@ -1,0 +1,47 @@
+Usage: python fit_locus.py [options] --help
+
+Given catalog of stellar magnitudes and total (atmosphere+mirrors+optics+filter+CCD) response,
+computes expected stellar locus, and fits for zeropoint calibration.
+Requires description of the columns in the input FITS table.
+
+Example: python fit_locus.py -f stars.fits -c stars.columns -e 1 -b 10
+
+python fit_locus.py --file ./EXAMPLES/kpno.fits --columns ./EXAMPLES/kpno.columns --extension 1
+ --bootstrap 5 -l -r ALPHA_J2000_reg2_i -d DELTA_J2000_reg2_i -j
+ python fit_locus.py --file ./EXAMPLES/MACS1423+24.stars.calibrated.cat --columns
+ ./EXAMPLES/MACS1423+24.qc.columns --extension 1 --bootstrap 5
+
+Options:
+  -h, --help            show this help message and exit
+  -f FILE, --file=FILE  FITS catalog file
+  -e EXTENSION, --extension=EXTENSION
+                        extension of FITS file containing stellar magnitudes
+                        (number or name) (default: 1)
+  -b BOOTSTRAP, --bootstrap=BOOTSTRAP
+                        number of bootstraps for error estimation (default: 0)
+  -c COLUMNS, --columns=COLUMNS
+                        column description file
+  -o OUTPUT, --output=OUTPUT
+                        output calibration file directory location, if
+                        different from directory containing catalog file
+  -p PLOTS, --plots=PLOTS
+                        destination directory for plots, if different from
+                        /output directory/PLOTS
+  -r RACOL, --racol=RACOL
+                        name of column in FITS file with object RA in DEGREES
+                        (default: X_WORLD)
+  -d DECCOL, --deccol=DECCOL
+                        name of column in FITS file with object DEC in DEGREES
+                        (default: XWORLD)
+  -l, --liveplot        show real-time plot of fit (default: True)
+  -z SN, --SN=SN        snpath
+  -t RUN, --run=RUN     run
+  -n NIGHT, --night=NIGHT
+                        night
+  -s, --addSDSSgriz     automatically search for and add SDSS griz stellar
+                        photometry, if available
+  -j, --add2MASSJ       automatically search for and add 2MASS J stellar
+                        photometry, if available
+  -w NUMBEROFPLOTS, --numberofplots=NUMBEROFPLOTS
+                        number of plots to make (default: 10)
+  -u, --sdssUnit        run SDSS unit test (only works if in coverage)

@@ -1,0 +1,188 @@
+
+Written by Patrick Kelly
+
+An implementation of algorithms described in Kelly et al. 2014 (http://arxiv.org/abs/1208.0602) Updated 8/25/12
+
+Author List
+P. L. Kelly, A. von der Linden, D. Applegate, M. Allen, S. W. Allen, P. R. Burchat, D. L. Burke, H. Ebeling, P. Capak, O. Czoske, D. Donovan, A. Mantz, and R. G. Morris
+
+1-2% Color Calibration
+Big MACS is a Python program that estimates an accurate photometric calibration from only an input catalog of stellar magnitudes and filter transmission functions. The user does not have to measure color terms which can be difficult to characterize.
+
+Supplied with filter transmission functions, Big MACS synthesizes an expected stellar locus for your data and then simultaneously solves for all unknown zeropoints when fitting to the instrumental locus.
+Uses a spectroscopic model for the SDSS stellar locus in color-color space and filter functions to compute expected locus.
+The stellar locus model is corrected for Milky Way reddening.
+If SDSS or 2MASS photometry is available for stars in field, code can yield a highly accurate absolute calibration.
+
+Magnitude calibration with 2MASS
+Automatically match against 2MASS catalog (useful if 2MASS stars are not saturated in science exposures)
+
+Incorporate SDSS photometry
+Automatically match against SDSS catalog
+
+Excellent for photometric redshifts
+See accompanying paper
+
+Advantages
+Calculates color transformation from SDSS to instrumental magnitudes automatically
+Simultaneously solves for all zeropoint simultaneously using new, simplified algorithm
+SDSS stellar locus is dereddened for Milky Way dust extinction
+Improved zeropoint accuracy
+
+<p><img src="http://farm9.staticflickr.com/8283/7613582508_cbccece26e.jpg" /> </p>
+<p>Color calibration of photometry through nine Subaru SuprimeCam and CFHT MegaPrime filter 
+bands of the RXJ1347-11 galaxy cluster field. We simultaneously vary eight zeropoints 
+and hold one constant during the fit to maximize agreement between the instrumental stellar 
+locus and the model stellar locus. </p>
+
+<p><img src="http://farm8.staticflickr.com/7275/7723411818_8340373f95.jpg" /> </p>
+<p>Photometric redshifts computed after calibration with Big MACS software.  </p>
+
+=========================================================================
+
+Set environmental variables: 
+
+#1
+
+BIGMACS
+to the path of the installation directory
+
+e.g., setenv BIGMACS /Users/ronald/big-macs-calibrate/ (tcsh shell)
+      
+      BIGMACS=/Users/ronald/big-macs-calibrate/ (bash shell)
+      export BIGMACS  
+
+#2 
+add installation directory to PYTHONPATH
+
+e.g., setenv PYTHONPATH $BIGMACS:PYTHONPATH (tcsh shell)
+
+      PYTHONPATH=$BIGMACS:PYTHONPATH
+      export PYTHONPATH  
+
+=========================================================================
+
+Usage:
+
+Run "python fit_locus.py --help" to get list of possible
+command line arguments 
+
+=========================================================================
+
+Required Python packages:
+
+pylab
+scipy
+sqlcl.py copy included (queries SDSS database written by Tamas Budavari, JHU -- need version that searches at least DR8which is set by the astro_url and public_url variables) 
+
+=========================================================================
+
+Acknowledgements:
+
+We use the Munari SED to estimate extinction
+
+=========================================================================
+
+Quick Start:
+
+Ingredients:
+
+    (1) FITS catalog with columns for stellar magnitudes and magnitude errors.
+    Include columns with RA and DEC if interested in automatically matching
+    against the SDSS or 2MASS catalogs. You will need to specify the names of the
+    RA and DEC columns (e.g., -r X_WORLD -d Y_WORLD) on the command line.
+
+    (2) Need to find/make totla transmission function for filters used in 
+    observations. FILTERS folder contains examples for several telescopes.
+
+    (3) Create a configuration file. Here you will specify the names
+    of the magnitude and magnitude error columns in the FITS catalog. 
+    You will need to specify whether to HOLD or VARY the zeropoint 
+    for each filter. If you choose to HOLD the zeropoint for a filter,
+    you will need to specify any zeropoint offset you would like to 
+    apply to the magnitudes for that filter during fit (generally 0 if
+    the magnitudes are calibrated). At least one filter will need to 
+    have the zeropoint held fixed.
+
+Example:
+
+    1) CALIBRATE ONLY COLORS (no SDSS or 2MASS magnitudes): 
+
+        python fit_locus.py --file ./EXAMPLES/MACS1423+24.stars.calibrated.cat --columns ./EXAMPLES/MACS1423+24.qc.columns --extension 1 --bootstrap 5 --l -s (run here from the installation directory) 
+
+        This a catalog of Subaru SuprimeCam magnitudes where we hold the zeropoint of one of the bands constant. Here we include SDSS stars (only the faintest are not saturated) to 
+        get an approximate absolute ZP. Colors should be calibrated with high accuracy.
+        
+        extension is the number or name of the extension of the table with the necessary magnitudes in the FITS file
+        liveplot is responsible for whether 
+        (type python fit_locus.py for other arguments)
+
+    2) SDSS UNIT TEST 
+
+        python fit_locus.py --file ./EXAMPLES/MACS1423+24.stars.calibrated.cat --columns ./EXAMPLES/MACS1423+24.qc.columns --extension 1 --bootstrap 0 --l -s -u (run here from the installation directory) 
+
+        This unit test makes a catalog of all SDSS stars in field (not only those matched against) and then holds the z-band zeropoint fixed. 
+
+    3) CALIBRATE ABSOLUTE ZP w/ 2MASS
+        python fit_locus.py --file ./EXAMPLES/kpno.fits --columns ./EXAMPLES/kpno.columns --extension 1 --bootstrap 5 -l -r ALPHA_J2000_reg2_i -d DELTA_J2000_reg2_i -j
+
+        This is a catalog of Kitt Peak photometry. Here we add 2MASS photometry to calibrate these magnitudes. A much smaller catalog than the Subaru catalog.  
+
+
+
+=========================================================================
+
+ESSENTIAL TIPS:
+
+    Need to specify output directory (e.g., --output ~/) in order to save plots for fit
+
+    Set bad magnitudes equal to +-99 (flagged measurements, saturated stars etc.)
+
+    Be wary at low Galatic latitude and high extinction, especially when using all available SDSS
+    filters/magnitudes. Code uses extinction curve to estimate what the SDSS magnitudes would
+    be _behind_ the dust -- that assumption may not be correct.
+
+    A kink in the _observed_ locus is important for accurate calibration.  
+
+    Does not yet work for u-band calibration (ask Pat) 
+
+    FILTER functions should not be in the optical
+
+    Yields an AB calibration (not Vega)
+
+    The 2MASS locus is not synthesized from the spectroscopic model. If you
+    would like to match against 2MASS then the name of the filter transmission
+    function needs to be J2MASS.res so that Big MACS can assign the correct locus.
+
+    Can only use 2MASS when there are enough 2MASS matches (problem is bright stars are saturated in science images)
+    
+    Make sure to exclude stars with saturated or non-linear measurements.
+
+    The spectroscopic model for the locus is only trustworthy to approximately 10500 Angstroms (the red limit of the SDSS z' filter), so synthesized magnitudes from near-IR filter functions are not likely to be correct. Therefore, near-IR observations need to be calibrated separately, although some work is ongoing to extend to templates to redder wavelengths.
+
+    The magnitudes, if any, that you hold "FIXED" need to be corrected for MW reddening along the line of sight.
+
+=========================================================================
+
+REMOVED MySQLdb dependence
+
+
+=========================================================================
+
+not currently available in public release:
+    Generate a new spectroscopic locus:                                                              
+    
+    execute CasJobs_query 
+    makes e.g., SLR_2MASS_pkelly50.fit which contains extinction-corrected stellar magnitudes
+    
+    first run measure_locus.py 
+    measure running median of colors indexed by g'-i' color
+    makes lociCAS_2MASS (pickled Python object)
+    then run make_spectroscopic_locus.py 
+    takes lociCAS_2MASS (pickled Python object)
+    makes spectra in LOCUS_SPECTRA  
+    
+    then run fit_locus.py 
+    takes spectra in LOCUS_SPECTRA
+    makes expected locus for filter set
+

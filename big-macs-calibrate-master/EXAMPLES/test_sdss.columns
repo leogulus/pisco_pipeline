@@ -1,0 +1,4 @@
+modelMag_g#$g$ modelMagErr_g SDSS-g.res HOLD 0
+modelMag_r#$r$ modelMagErr_r SDSS-r.res VARY
+modelMag_i#$i$ modelMagErr_i SDSS-i.res VARY
+modelMag_z#$z$ modelMagErr_z SDSS-z.res VARY
