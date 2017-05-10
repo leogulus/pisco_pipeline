@@ -9,9 +9,9 @@ Required softwares before using the pipeline:
 - [Sextractor](http://www.astromatic.net/software/sextractor)
 - [SCAMP](https://www.astromatic.net/software/scamp)
 - [SWARP](https://www.astromatic.net/software/swarp)
-- Cosmics ray removal python packages: *comics.py* python package (developed from [LA-Cosmic](http://www.astro.yale.edu/dokkum/lacosmic/). The package is also included here. 
 
-Included packages:
+Included packages: 
+- Cosmics ray removal python packages: *comics.py* python package (developed from [LA-Cosmic](http://www.astro.yale.edu/dokkum/lacosmic/). The package is also included here, but required to be installed before.
 - Stellar Locus Regression python package: [Big-macs-calibrate](https://github.com/patkel/big-macs-calibrate) by Kelly et al. 2014 (http://arxiv.org/abs/1208.0602) 
 
 Other Required Python Packages: 
