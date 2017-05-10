@@ -14,6 +14,7 @@ import os
 import subprocess
 import shlex
 import sys
+#edited 5/9/17
 ##------
 def write_ds9_region_sky(table,allcol,color,fname):
     dir="region/"
@@ -137,7 +138,6 @@ EXAMPLES:
 python pisco_pipeline/pisco_photometry.py Field026
 """
 
-
 if __name__ == "__main__":
     print 'Number of arguments:', len(sys.argv), 'arguments.'
     print 'Argument List:', str(sys.argv)
@@ -147,7 +147,6 @@ if __name__ == "__main__":
         os.makedirs(slrdir)
 
     field=str(sys.argv[1])
-
     r=aperature_f(field,'r')
     i=aperature_f(field,'i')
     z=aperature_f(field,'z')

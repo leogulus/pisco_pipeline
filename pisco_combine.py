@@ -8,7 +8,7 @@ import cosmics
 import shlex
 import sys
 #from pisco_lib import *
-#edited 4/4/17
+#edited 5/9/17
 
 """
 pisco_combine: run pisco pipeline to reduce the raw data to clean data with correct WCS

@@ -10,11 +10,11 @@ Required softwares before using the pipeline:
 - [SCAMP](https://www.astromatic.net/software/scamp)
 - [SWARP](https://www.astromatic.net/software/swarp)
 
-Included packages: 
+Included packages:
 - Cosmics ray removal python packages: *comics.py* python package (developed from [LA-Cosmic](http://www.astro.yale.edu/dokkum/lacosmic/). The package is also included here, but required to be installed before.
-- Stellar Locus Regression python package: [Big-macs-calibrate](https://github.com/patkel/big-macs-calibrate) by Kelly et al. 2014 (http://arxiv.org/abs/1208.0602) 
+- Stellar Locus Regression python package: [Big-macs-calibrate](https://github.com/patkel/big-macs-calibrate) by Kelly et al. 2014 (http://arxiv.org/abs/1208.0602)
 
-Other Required Python Packages: 
+Other Required Python Packages:
 - [astropy](www.astropy.org/)
 - [photutils](https://photutils.readthedocs.io/) (an affiliated package of Astropy) (required only for the Photometry pipeline)
 - numpy
