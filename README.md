@@ -9,6 +9,7 @@ Required softwares before using the pipeline:
 - [Sextractor](http://www.astromatic.net/software/sextractor)
 - [SCAMP](https://www.astromatic.net/software/scamp)
 - [SWARP](https://www.astromatic.net/software/swarp)
+- [DS9](http://ds9.si.edu/site/Download.html) [required for *pisco_combine.py* in order to make an image, can comment out the last line in *pisco_combine.py* (save_rgb_image(fieldname)) to remove the requirement.] 
 
 Included packages:
 - Cosmics ray removal python packages: *comics.py* python package (developed from [LA-Cosmic](http://www.astro.yale.edu/dokkum/lacosmic/). The package is also included here, but required to be installed before.

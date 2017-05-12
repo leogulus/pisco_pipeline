@@ -201,13 +201,13 @@ def cosmic_reduce(dir,field,band):
     array, header = cosmics.fromfits(os.path.join(dir,field+'_'+band+'.fits'))
     #cutting the circular aperature of the image out to only have good pixels in the center
     if band=='g':
-        array_c=array[10:-10,350:2500]
+        array_c=array[10:-10,350:2550]
     elif band=='r':
-        array_c=array[10:-10,350:2500]
+        array_c=array[10:-10,350:2550]
     elif band=='z':
-        array_c=array[10:-10,650:2750]
+        array_c=array[10:-10,650:2800]
     elif band=='i':
-        array_c=array[10:-10,650:2750]
+        array_c=array[10:-10,650:2800]
     c = cosmics.cosmicsimage(array_c, gain=4.0, readnoise=3.0, sigclip = 2.5, sigfrac = 0.5,\
                              objlim = 5.0, satlevel=3000.0, verbose=False)
     c.run(maxiter = 5)
@@ -299,6 +299,14 @@ def swarp(fieldname):
         (coadd_files[0],coadd_files[1],os.path.join('final','coadd_'+fieldname+'_'+band+'.fits'))
         print cmd
         sub=subprocess.check_call(shlex.split(cmd))
+
+def save_rgb_image(field):
+    cmd="ds9 -zscale -rgb -red final/coadd_c%s_i.fits -green final/coadd_c%s_r.fits "+\
+    "-blue final/coadd_c%s_g.fits -zoom to fit -saveimage final/img%s.eps -exit" % \
+    (field,field,field,field)
+    print cmd
+    sub=subprocess.check_call(shlex.split(cmd))
+    print 'finished saving final/img%s.eps' % field
 ##--------
 
 if __name__ == "__main__":
@@ -356,3 +364,5 @@ if __name__ == "__main__":
     scamp(cfieldname)
     #SWARP
     swarp(cfieldname)
+    #save eps file for RGB image
+    save_rgb_image(fieldname)
