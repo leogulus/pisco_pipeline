@@ -301,8 +301,7 @@ def swarp(fieldname):
         sub=subprocess.check_call(shlex.split(cmd))
 
 def save_rgb_image(field):
-    cmd="ds9 -zscale -rgb -red final/coadd_c%s_i.fits -green final/coadd_c%s_r.fits "+\
-    "-blue final/coadd_c%s_g.fits -zoom to fit -saveimage final/img%s.eps -exit" % \
+    cmd="ds9 -zscale -rgb -red final/coadd_c%s_i.fits -green final/coadd_c%s_r.fits -blue final/coadd_c%s_g.fits -zoom to fit -saveimage final/img%s.eps -exit" % \
     (field,field,field,field)
     print cmd
     sub=subprocess.check_call(shlex.split(cmd))
