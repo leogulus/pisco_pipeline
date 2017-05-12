@@ -5,7 +5,7 @@ This is a current version of PISCO data reduction pipeline, developed by [Taweew
 ## Installation:
 
 Required softwares before using the pipeline:
-- [Astrometry.net](http://astrometry.net/use.html) (including necessary index files for your field of interest)
+- [Astrometry.net](http://astrometry.net/use.html) (including necessary [index files](http://data.astrometry.net/4200/) for your field of interest)
 - [Sextractor](http://www.astromatic.net/software/sextractor)
 - [SCAMP](https://www.astromatic.net/software/scamp)
 - [SWARP](https://www.astromatic.net/software/swarp)
