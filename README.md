@@ -26,9 +26,9 @@ Other Required Python Packages:
 
 ### Running the Astrometry pipeline
 ```python
-python pisco_pipeline/pisco_combine.py data/ Field026
+python pisco_pipeline/pisco_combine.py /path/to/data/ Field024
 ```
-where *data/* is the directory wherer the PISCO raw data Field024_A_82.fits and Field024_A_83.fits are located, and Field024 is the prefix for all the files that you want to combine together. Run python script outside *pisco_pipeline/* directory next to *data/* directory is located.
+where */path/to/data/* is the directory where the PISCO raw data Field024_A_82.fits and Field024_A_83.fits are located, and Field024 is the prefix for all the files that you want to combine together. Run python script outside *pisco_pipeline/* directory next to *data/* directory is located.
 
 The main outputs (4 fits images based on 4 different bands) will be located in *final/* directory.
 

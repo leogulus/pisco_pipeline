@@ -330,7 +330,7 @@ if __name__ == "__main__":
     if not os.path.exists('final'):
         os.makedirs('final')
 
-    fields=[name.split('/')[1].split('.')[0] for name in list_file_name(dir,fieldname)]
+    fields=[name.split('/')[-1].split('.')[0] for name in list_file_name(dir,fieldname)]
     for field in fields:
         for index in [1,3,5,7]:
             ch1, bias1, domeflat1, img1=reduce_data(dir,index,field)
