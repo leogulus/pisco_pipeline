@@ -8,7 +8,7 @@ import cosmics
 import shlex
 import sys
 #from pisco_lib import *
-#edited 5/9/17
+# edited 5/9/17
 
 """
 pisco_combine: run pisco pipeline to reduce the raw data to clean data with correct WCS
@@ -20,6 +20,8 @@ ARGUMENTS:
 
 Examples: python pisco_pipeline/pisco_combine.py data/ Field026
 """
+
+
 def filter_name(index):
     """
     filter_name: turn index [1,8] into letter band (g,r,i,z) for PISCO quadrant data
@@ -28,21 +30,22 @@ def filter_name(index):
     OUTPUT:
     - a pair of letter for corresponding band and dome band
     """
-    if index==1 or index==2:
-        filter_name='g'
-        dome_name='g'
-    elif index==3 or index==4:
-        filter_name='r'
-        dome_name='r'
+    if index == 1 or index == 2:
+        filter_name = 'g'
+        dome_name = 'g'
+    elif index == 3 or index == 4:
+        filter_name = 'r'
+        dome_name = 'r'
     else:
-        dome_name='iz'
-        if index==5 or index==6:
-            filter_name='i'
-        elif index==7 or index==8:
-            filter_name='z'
-    return [filter_name,dome_name]
+        dome_name = 'iz'
+        if index == 5 or index == 6:
+            filter_name = 'i'
+        elif index == 7 or index == 8:
+            filter_name = 'z'
+    return [filter_name, dome_name]
 
-def list_file_name(dir,name,end=0):
+
+def list_file_name(dir, name, end=0):
     """
     list_file_name: list all filename which started with 'name' and end with
     'end' in 'dir' directory
@@ -53,19 +56,20 @@ def list_file_name(dir,name,end=0):
     OUTPUT:
     - list of all filename in that directory
     """
-    names=[]
+    names = []
     for file in os.listdir(dir):
         if file.startswith(name):
-            if end==0:
+            if end == 0:
                 names.append(os.path.join(dir, file))
             else:
                 if file.endswith(end):
                     names.append(os.path.join(dir, file))
-    if len(names)==0:
+    if len(names) == 0:
         print 'Cannot find the files'
     return names
 
-def open_files(names,index,bias=np.array([])):
+
+def open_files(names, index, bias=np.array([])):
     """
     open_files: use to open multiple bias or domeflat files at once and take the mean to
     to get the average bias/domeflat file for image reduction
@@ -78,17 +82,19 @@ def open_files(names,index,bias=np.array([])):
     OUTPUT:
     - 2D array of average bias/domeflat images
     """
-    ch_bs=[]
+    ch_bs = []
     for name in names:
         hdulist = fits.open(name)
-        ch_b=hdulist[index].data
-        if len(bias)==0:
-            ch_bs.append(ch_b) #for bias to combine as a mean
+        ch_b = hdulist[index].data
+        if len(bias) == 0:
+            ch_bs.append(ch_b)  # for bias to combine as a mean
         else:
-            ch_bs.append(ch_b-bias) #for domeflat-bias before combine into a mean
-    return np.mean(np.array(ch_bs),axis=0)
+            # for domeflat-bias before combine into a mean
+            ch_bs.append(ch_b - bias)
+    return np.mean(np.array(ch_bs), axis=0)
 
-def plot_one_chip(ax,data,vmin,vmax):
+
+def plot_one_chip(ax, data, vmin, vmax):
     """
     plot_one_chip: plot 2D array 'data' on 'ax' with Normalize scale 'vmin' and 'vmax'
     INPUT:
@@ -99,7 +105,7 @@ def plot_one_chip(ax,data,vmin,vmax):
     OUTPUT:
     - plot of the data at a specified normalize scale
     """
-    norm = matplotlib.colors.Normalize(vmin=vmin,vmax=vmax)
+    norm = matplotlib.colors.Normalize(vmin=vmin, vmax=vmax)
     c_m = matplotlib.cm.Greys
     s_m = matplotlib.cm.ScalarMappable(cmap=c_m, norm=norm)
     s_m.set_array([])
@@ -108,7 +114,8 @@ def plot_one_chip(ax,data,vmin,vmax):
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
 
-def save_fits(index,dir,outdir,fieldname,final_image,name):
+
+def save_fits(index, dir, outdir, fieldname, final_image, name):
     """
     save_fits: save the fits file from 2D array 'final_image' with a known header from the raw PISCO data
     'fieldname' (changed the size to accompany the attachment of two amplifiers) with the output 'name'
@@ -122,30 +129,32 @@ def save_fits(index,dir,outdir,fieldname,final_image,name):
     OUTPUT:
     - fits file in 'reduced/' directory
     """
-    ch1_name=list_file_name(dir,fieldname)
+    ch1_name = list_file_name(dir, fieldname)
     hdulist = fits.open(ch1_name[0])
 
     hdu0 = hdulist[0]
-    hdu0.header['NAXIS']=2
-    hdulist[index].header['NAXIS1']='1546'
+    hdu0.header['NAXIS'] = 2
+    hdulist[index].header['NAXIS1'] = '1546'
     hdulist[index].header['DATASEC'] = '[1:1546,1:3092]'
     hdulist[index].header['TRIMSEC'] = '[1:1546,1:3092]'
     hdulist[index].header['ORIGSEC'] = '[1:1546,1:3092]'
     hdulist[index].header['CCDSEC'] = '[1:1546,3093:6184]'
     hdulist[index].header['DETSEC'] = '[1:1546,3093:6184]'
 
-    hdu1 = fits.ImageHDU(final_image*1000,name='filter '+filter_name(index)[0],header=hdulist[index].header)
-    hdu_l = fits.HDUList(hdus=[hdu0,hdu1])
+    hdu1 = fits.ImageHDU(final_image * 1000, name='filter ' +
+                         filter_name(index)[0], header=hdulist[index].header)
+    hdu_l = fits.HDUList(hdus=[hdu0, hdu1])
     # if not os.path.exists(outdir):
     #     os.makedirs(outdir)
-    outname=os.path.join(outdir,name)
-    print 'saving the fits file '+outname
+    outname = os.path.join(outdir, name)
+    print 'saving the fits file ' + outname
     hdu_l.writeto(outname, overwrite=True)
 
     data, header = fits.getdata(outname, header=True)
     fits.writeto(outname, data, header, clobber=True)
 
-def reduce_data(dir,index,fieldname):
+
+def reduce_data(dir, index, fieldname):
     """
     reduce_data: combine raw PISCO data with bias and domeflat to create 2D array of output image
     using function list_file_name, open_files
@@ -160,28 +169,30 @@ def reduce_data(dir,index,fieldname):
     - domeflat: 2D array for the domeflat image
     - img: 2D array of the output image after subtraction of bias and normalization with domeflat
     """
-    cut=-27
+    cut = -27
 
-    ch1_name=list_file_name(dir,fieldname)
-    print 'working on %s with the index=%i'%(ch1_name[0],index)
+    ch1_name = list_file_name(dir, fieldname)
+    print 'working on %s with the index=%i' % (ch1_name[0], index)
     hdulist = fits.open(ch1_name[0])
-    ch1=hdulist[index].data
+    ch1 = hdulist[index].data
 
-    bias_names=list_file_name(dir,'Bias_')
-    domeflat_names=list_file_name(dir,"domeflat"+filter_name(index)[1])
+    bias_names = list_file_name(dir, 'Bias_')
+    domeflat_names = list_file_name(dir, "domeflat" + filter_name(index)[1])
 
-    bias=open_files(bias_names,index)
-    domeflat=open_files(domeflat_names,index,bias=bias)
-    domeflat[domeflat==0]=1e-4
-    img = (ch1-bias)/domeflat;
-    ch1,bias,domeflat,img=ch1[:,:cut],bias[:,:cut],domeflat[:,:cut],img[:,:cut]
+    bias = open_files(bias_names, index)
+    domeflat = open_files(domeflat_names, index, bias=bias)
+    domeflat[domeflat == 0] = 1e-4
+    img = (ch1 - bias) / domeflat
+    ch1, bias, domeflat, img = ch1[:, :cut], bias[:,
+                                                  :cut], domeflat[:, :cut], img[:, :cut]
 
-    if index%2==0:
+    if index % 2 == 0:
         return np.fliplr(ch1), np.fliplr(bias), np.fliplr(domeflat), np.fliplr(img)
     else:
         return ch1, bias, domeflat, img
 
-def cosmic_reduce(dir,field,band):
+
+def cosmic_reduce(dir, field, band):
     """
     cosmic_reduce: read the FITS file and use L.A. Cosmic (http://www.astro.yale.edu/dokkum/lacosmic/)
     to remove cosmic rays in the images
@@ -198,28 +209,33 @@ def cosmic_reduce(dir,field,band):
     - cField..._g.fits: clean version, removed cosmic ray
     - mField..._g.fits: masked file to remove cosmic ray
     """
-    array, header = cosmics.fromfits(os.path.join(dir,field+'_'+band+'.fits'))
-    #cutting the circular aperature of the image out to only have good pixels in the center
-    if band=='g':
-        array_c=array[10:-10,350:2550]
-    elif band=='r':
-        array_c=array[10:-10,350:2550]
-    elif band=='z':
-        array_c=array[10:-10,650:2800]
-    elif band=='i':
-        array_c=array[10:-10,650:2800]
-    c = cosmics.cosmicsimage(array_c, gain=4.0, readnoise=3.0, sigclip = 2.5, sigfrac = 0.5,\
-                             objlim = 5.0, satlevel=3000.0, verbose=False)
-    c.run(maxiter = 5)
+    array, header = cosmics.fromfits(
+        os.path.join(dir, field + '_' + band + '.fits'))
+    # cutting the circular aperature of the image out to only have good pixels
+    # in the center
+    if band == 'g':
+        array_c = array[10:-10, 350:2550]
+    elif band == 'r':
+        array_c = array[10:-10, 350:2550]
+    elif band == 'z':
+        array_c = array[10:-10, 650:2800]
+    elif band == 'i':
+        array_c = array[10:-10, 650:2800]
+    c = cosmics.cosmicsimage(array_c, gain=4.0, readnoise=3.0, sigclip=2.5, sigfrac=0.5,
+                             objlim=5.0, satlevel=3000.0, verbose=False)
+    c.run(maxiter=5)
 
     # if not os.path.exists(os.path.join(dir,'cosmics')):
     #     os.makedirs(os.path.join(dir,'cosmics'))
-    cosmics.tofits(os.path.join(dir,'cosmics','n'+field+'_'+band+'.fits'), array_c, header)
-    cosmics.tofits(os.path.join(dir,'cosmics','c'+field+'_'+band+'.fits'), c.cleanarray, header)
-    cosmics.tofits(os.path.join(dir,'cosmics','m'+field+'_'+band+'.fits'), c.mask, header)
+    cosmics.tofits(os.path.join(dir, 'cosmics', 'n' + field +
+                                '_' + band + '.fits'), array_c, header)
+    cosmics.tofits(os.path.join(dir, 'cosmics', 'c' + field +
+                                '_' + band + '.fits'), c.cleanarray, header)
+    cosmics.tofits(os.path.join(dir, 'cosmics', 'm' + field +
+                                '_' + band + '.fits'), c.mask, header)
 
 
-def astrometry_solve(cosmicdir,field,outdir):
+def astrometry_solve(cosmicdir, field, outdir):
     """
     astrometry_solve: apply astrometry algorithm to find celestial Coordinate (WCS) for the image
     REQUIRE:
@@ -236,23 +252,24 @@ def astrometry_solve(cosmicdir,field,outdir):
     """
     # if not os.path.exists(outdir):
     #     os.makedirs(os.path.join(outdir))
-    if not os.path.isfile(os.path.join(outdir,field+'.wcs')):
-        cmd='solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s' \
-        % (os.path.join(cosmicdir,field+'.fits'),outdir)
+    if not os.path.isfile(os.path.join(outdir, field + '.wcs')):
+        cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s' \
+            % (os.path.join(cosmicdir, field + '.fits'), outdir)
         print cmd
-        sub=subprocess.check_call(shlex.split(cmd))
-        if sub==0:
+        sub = subprocess.check_call(shlex.split(cmd))
+        if sub == 0:
             print 'finish solve-field and updating fits headers'
         else:
             print 'solve-field does not work.'
 
-    orig=fits.open(os.path.join(cosmicdir,field+'.fits'))
-    wcs_file=fits.open(os.path.join(outdir,field+'.wcs'))
-    header=wcs_file[0].header
-    wcsaxes_index=np.where(np.array(header.keys())=='WCSAXES')[0][0]
-    for i in range(wcsaxes_index,len(header)):
-        orig[0].header[header.keys()[i]]=header.values()[i]
-    orig.writeto(os.path.join('new_fits',field+'_new.fits'),clobber=True)
+    orig = fits.open(os.path.join(cosmicdir, field + '.fits'))
+    wcs_file = fits.open(os.path.join(outdir, field + '.wcs'))
+    header = wcs_file[0].header
+    wcsaxes_index = np.where(np.array(header.keys()) == 'WCSAXES')[0][0]
+    for i in range(wcsaxes_index, len(header)):
+        orig[0].header[header.keys()[i]] = header.values()[i]
+    orig.writeto(os.path.join('new_fits', field + '_new.fits'), clobber=True)
+
 
 def sextracting(field):
     """
@@ -263,10 +280,12 @@ def sextracting(field):
     OUTPUT:
     - new_fits/..._new.ldac.fits: source catalogs of all the point source from Sextractor
     """
-    cmd='sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s' % \
-    (os.path.join('new_fits',field+'_new.fits'),os.path.join('new_fits',field+'_new.ldac.fits'))
+    cmd = 'sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s' % \
+        (os.path.join('new_fits', field + '_new.fits'),
+         os.path.join('new_fits', field + '_new.ldac.fits'))
     print cmd
-    sub=subprocess.check_call(shlex.split(cmd))
+    sub = subprocess.check_call(shlex.split(cmd))
+
 
 def scamp(fieldname):
     """
@@ -278,9 +297,11 @@ def scamp(fieldname):
     OUTPUT:
     - new_fits/...ldac.head: SCAMP output which includes new celestial coordinates for fixing WCS
     """
-    cmd='scamp %s -c pisco_pipeline/config.scamp' % ' '.join(list_file_name('new_fits',fieldname,end='_new.ldac.fits'))
+    cmd = 'scamp %s -c pisco_pipeline/config.scamp' % ' '.join(
+        list_file_name('new_fits', fieldname, end='_new.ldac.fits'))
     print cmd
-    sub=subprocess.check_call(shlex.split(cmd))
+    sub = subprocess.check_call(shlex.split(cmd))
+
 
 def swarp(fieldname):
     """
@@ -291,33 +312,37 @@ def swarp(fieldname):
     OUTPUT:
     - final/coadd_'fieldname'_'g'.fits: final image for each 'band' with corrected WCS
     """
-    bands=['g','r','i','z']
+    bands = ['g', 'r', 'i', 'z']
     print 'Swarping...'
     for band in bands:
-        coadd_files=list_file_name('new_fits',fieldname,end=band+'_new.fits')
-        cmd='swarp %s %s -c pisco_pipeline/config.swarp -IMAGEOUT_NAME %s' %\
-        (coadd_files[0],coadd_files[1],os.path.join('final','coadd_'+fieldname+'_'+band+'.fits'))
+        coadd_files = list_file_name(
+            'new_fits', fieldname, end=band + '_new.fits')
+        cmd = 'swarp %s %s -c pisco_pipeline/config.swarp -IMAGEOUT_NAME %s' %\
+            (coadd_files[0], coadd_files[1], os.path.join(
+                'final', 'coadd_' + fieldname + '_' + band + '.fits'))
         print cmd
-        sub=subprocess.check_call(shlex.split(cmd))
+        sub = subprocess.check_call(shlex.split(cmd))
+
 
 def save_rgb_image(field):
-    cmd="ds9 -zscale -rgb -red final/coadd_c%s_i.fits -green final/coadd_c%s_r.fits -blue final/coadd_c%s_g.fits -zoom to fit -saveimage final/img%s.eps -exit" % \
-    (field,field,field,field)
+    cmd = "ds9 -zscale -rgb -red final/coadd_c%s_i.fits -green final/coadd_c%s_r.fits -blue final/coadd_c%s_g.fits -zoom to fit -saveimage final/img%s.eps -exit" % \
+        (field, field, field, field)
     print cmd
-    sub=subprocess.check_call(shlex.split(cmd))
+    sub = subprocess.check_call(shlex.split(cmd))
     print 'finished saving final/img%s.eps' % field
-##--------
+# --------
+
 
 if __name__ == "__main__":
     print 'Number of arguments:', len(sys.argv), 'arguments.'
     print 'Argument List:', str(sys.argv)
 
-    ## Pipeline to run PISCO reduction data
-    dir=str(sys.argv[1])
-    fieldname=str(sys.argv[2])
-    outdir='wcs'
-    reducedir='reduced'
-    cosmicdir=os.path.join(reducedir,'cosmics')
+    # Pipeline to run PISCO reduction data
+    dir = str(sys.argv[1])
+    fieldname = str(sys.argv[2])
+    outdir = 'wcs'
+    reducedir = 'reduced'
+    cosmicdir = os.path.join(reducedir, 'cosmics')
 
     if not os.path.exists(outdir):
         os.makedirs(os.path.join(outdir))
@@ -330,38 +355,41 @@ if __name__ == "__main__":
     if not os.path.exists('final'):
         os.makedirs('final')
 
-    fields=[name.split('/')[-1].split('.')[0] for name in list_file_name(dir,fieldname)]
+    fields = [name.split('/')[-1].split('.')[0]
+              for name in list_file_name(dir, fieldname)]
     for field in fields:
-        for index in [1,3,5,7]:
-            ch1, bias1, domeflat1, img1=reduce_data(dir,index,field)
-            ch2, bias2, domeflat2, img2=reduce_data(dir,index+1,field)
-            final_image=np.concatenate((img1,img2),axis=1)
-            save_fits(index,dir,reducedir,field,final_image,"%s_%s.fits"%(field,filter_name(index)[0]))
+        for index in [1, 3, 5, 7]:
+            ch1, bias1, domeflat1, img1 = reduce_data(dir, index, field)
+            ch2, bias2, domeflat2, img2 = reduce_data(dir, index + 1, field)
+            final_image = np.concatenate((img1, img2), axis=1)
+            save_fits(index, dir, reducedir, field, final_image,
+                      "%s_%s.fits" % (field, filter_name(index)[0]))
 
-    #Cosmic ray reduction using L.A. Cosmic
-    bands=['g','r','i','z']
+    # Cosmic ray reduction using L.A. Cosmic
+    bands = ['g', 'r', 'i', 'z']
     for field in fields:
         for band in bands:
-            if not os.path.isfile(os.path.join(reducedir,'cosmics','c'+field+'_'+band+'.fits')):
-                print 'working on the cosmic '+'c'+field+'_'+band
-                cosmic_reduce(reducedir,field,band)
+            if not os.path.isfile(os.path.join(reducedir, 'cosmics', 'c' + field + '_' + band + '.fits')):
+                print 'working on the cosmic ' + 'c' + field + '_' + band
+                cosmic_reduce(reducedir, field, band)
             else:
-                print 'already did this band '+band
-                #cosmic_reduce(reducedir,field,band)
+                print 'already did this band ' + band
+                # cosmic_reduce(reducedir,field,band)
 
-    cfieldname='c'+fieldname
-    print 'number of files in %s is %i' % (cosmicdir,len(list_file_name(cosmicdir,cfieldname)))
+    cfieldname = 'c' + fieldname
+    print 'number of files in %s is %i' % (cosmicdir, len(list_file_name(cosmicdir, cfieldname)))
 
-    for field_long in list_file_name(cosmicdir,cfieldname):
-        field=field_long.split('/')[2].split('.')[0]
-        #Astrometry to get a rough estimate on the World Coordinate System (WCS) for each images
-        astrometry_solve(cosmicdir,field,outdir)
-        #Sextracting
+    for field_long in list_file_name(cosmicdir, cfieldname):
+        field = field_long.split('/')[2].split('.')[0]
+        # Astrometry to get a rough estimate on the World Coordinate System
+        # (WCS) for each images
+        astrometry_solve(cosmicdir, field, outdir)
+        # Sextracting
         sextracting(field)
 
-    #SCAMP
+    # SCAMP
     scamp(cfieldname)
-    #SWARP
+    # SWARP
     swarp(cfieldname)
-    #save eps file for RGB image
+    # save eps file for RGB image
     save_rgb_image(fieldname)
