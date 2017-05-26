@@ -54,15 +54,16 @@ def sex_band(field, band):
     - create sextractor output file (e.g., testField026_i.fits) which have all the location of
     objects that we are interested in.
     """
-    outname = os.path.join('final', 'test%s_%s.fits' % (field, band))
-    cmd = "sex %s -c pisco_pipeline/config_slr.sex -CATALOG_NAME %s" % (
-        os.path.join('final', 'coadd_c%s_%s.fits' % (field, band)), outname)
+    seeing=Table.read('/Users/taweewat/Dropbox/Documents/MIT/Observation/2017_1/PISCO_Jan17_seeing.csv')
+    see=seeing[seeing['Field']==int(field[-3:])]['Seeing'][0]
+    outname=os.path.join('final','test%s_%s.fits'%(field,band))
+    cmd="sex %s -c config_slr.sex -CATALOG_NAME %s -SEEING_FWHM %s" % (os.path.join('final','coadd_c%s_%s.fits'%(field,band)),outname,str(see))
     print cmd
-    sub = subprocess.check_call(shlex.split(cmd))
+    sub=subprocess.check_call(shlex.split(cmd))
     return outname
 
 
-def aperature_f(field, band, aper_rad=2., annu_in=3., annu_out=6.):
+def aperature_f(field, band, aper_rad=1.8, annu_in=3., annu_out=6.):
     """
     aperature_f: running "photutils: aperture_photometry" to get the number of count within
     a radius 'aper_rad', comparing with the background annulus with inner radius 'annu_in' and
@@ -138,8 +139,9 @@ def create_star_fits_slr(field, g, r, i, z):
     total["XWIN_WORLD"] = total["celestial_center_i"].ra.degree
     total["YWIN_WORLD"] = total["celestial_center_i"].dec.degree
 
-    star = total[total["CLASS_STAR"] > 0.9]
-    gal = total[total["CLASS_STAR"] < 0.6]
+    star = total[(total["CLASS_STAR"] > 0.9) & (total['magi']>-13.4)]
+    #magnitude cut for saturated stars (pix~1400 for the whole aperature of radius 7.5 px => mag~-13.4)
+    gal = total[total["CLASS_STAR"] < 0.75]
     write_ds9_region_sky(star, "celestial_center_i",
                          'red', 'star_%s.reg' % field)
     write_ds9_region_sky(gal, "celestial_center_i",
@@ -169,10 +171,10 @@ def slr_running(field, bigmacs="pisco_pipeline/big-macs-calibrate-master"):
         % (pyfile, infile, os.path.join(bigmacs, "coadd_mag.columns"), field)
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
-    if sub == 0:
-        print 'finish slr_file and return starr.fits.offsets.list'
-    else:
-        print 'slr stops working.'
+    # if sub == 0:
+    #     print 'finish slr_file and return starr.fits.offsets.list'
+    # else:
+    #     print 'slr stops working.'
 
 
 def update_color(fname, table):

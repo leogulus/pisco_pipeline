@@ -9,7 +9,7 @@ Required softwares before using the pipeline:
 - [Sextractor](http://www.astromatic.net/software/sextractor)
 - [SCAMP](https://www.astromatic.net/software/scamp)
 - [SWARP](https://www.astromatic.net/software/swarp)
-- [DS9](http://ds9.si.edu/site/Download.html) [required for *pisco_combine.py* in order to make an image, can comment out the last line in *pisco_combine.py* (save_rgb_image(fieldname)) to remove the requirement.] 
+- [DS9](http://ds9.si.edu/site/Download.html) [required for *pisco_combine.py* in order to make an image, can comment out the last line in *pisco_combine.py* (save_rgb_image(fieldname)) to remove the requirement.]
 
 Included packages:
 - Cosmics ray removal python packages: *comics.py* python package (developed from [LA-Cosmic](http://www.astro.yale.edu/dokkum/lacosmic/). The package is also included here, but required to be installed before.
@@ -37,6 +37,10 @@ The main outputs (4 fits images based on 4 different bands) will be located in *
 python pisco_pipeline/pisco_photometry.py Field026
 ```
 Need to run Astrometry pipeline first as the input for the photometry pipeline. The main output for the pipeline (csv file with corrected magnitude in different bands with their uncertainty) is located in *slr_output/* directory.
+
+### Known bugs
+- if you got a warning "WARNING: Significant inaccuracy" from SWARP, it tells you that the astrometry solution that you use might be wrong. One way to fix this is to remove all 2MASS.cat file that astrometry.net created since it might be incorrect, then rerun it again. 
+
 
 ## License
 

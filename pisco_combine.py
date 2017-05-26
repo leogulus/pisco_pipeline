@@ -225,8 +225,6 @@ def cosmic_reduce(dir, field, band):
                              objlim=5.0, satlevel=3000.0, verbose=False)
     c.run(maxiter=5)
 
-    # if not os.path.exists(os.path.join(dir,'cosmics')):
-    #     os.makedirs(os.path.join(dir,'cosmics'))
     cosmics.tofits(os.path.join(dir, 'cosmics', 'n' + field +
                                 '_' + band + '.fits'), array_c, header)
     cosmics.tofits(os.path.join(dir, 'cosmics', 'c' + field +
@@ -317,8 +315,9 @@ def swarp(fieldname):
     for band in bands:
         coadd_files = list_file_name(
             'new_fits', fieldname, end=band + '_new.fits')
-        cmd = 'swarp %s %s -c pisco_pipeline/config.swarp -IMAGEOUT_NAME %s' %\
-            (coadd_files[0], coadd_files[1], os.path.join(
+
+        cmd = 'swarp %s -c pisco_pipeline/config.swarp -IMAGEOUT_NAME %s' %\
+            (' '.join(coadd_files), os.path.join(
                 'final', 'coadd_' + fieldname + '_' + band + '.fits'))
         print cmd
         sub = subprocess.check_call(shlex.split(cmd))
@@ -386,6 +385,14 @@ if __name__ == "__main__":
         astrometry_solve(cosmicdir, field, outdir)
         # Sextracting
         sextracting(field)
+
+    if fieldname == 'Field173':
+        cmd = 'rm new_fits/cField173_A_100_i_new.fits'
+        try:
+            print cmd
+            sub = subprocess.check_call(shlex.split(cmd))
+        except (ValueError, RuntimeError, TypeError, NameError):
+            pass
 
     # SCAMP
     scamp(cfieldname)
