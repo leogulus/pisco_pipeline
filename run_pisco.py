@@ -30,24 +30,27 @@ def list_file_name(dir, name, end=0):
 
 
 dir='data2/'
+dir='ut170619/'
 
 if __name__ == "__main__":
     # all_fields = list(set([i.split('_')[0].split('/')[-1]
     #                        for i in list_file_name(dir, 'Field')]))
-    all_fields = list(set([i.split('/')[-1].split('_')[1].split('.')[0] for i in list_file_name('slr_output/', 'ntotal_Field')]))
+    # all_fields = list(set([i.split('/')[-1].split('_')[1].split('.')[0] for i in list_file_name('slr_output/', 'ntotal_Field')]))
+    all_fields = ['Field234','Field237']#'Field037','Field042','Field045','Field084','Field058','Field059','Field060','Field074'] #'Field234','Field237'
     for i, field in enumerate(all_fields[:]):
         print i, field
         # cmd = "python pisco_pipeline/pisco_combine.py %s %s" % (dir,field)
-        # print cmd
-        # sub = subprocess.check_call(shlex.split(cmd))
+        cmd = "python pisco_pipeline/pisco_combine.py %s %s 'twilight'" % (dir,field)
+        print cmd
+        sub = subprocess.check_call(shlex.split(cmd))
 
-        if not os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
-        if os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
-            cmd = "python pisco_pipeline/pisco_photometry.py %s" % field
-            print cmd
-            sub = subprocess.check_call(shlex.split(cmd))
+        # if not os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
+        # if os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
+        #     cmd = "python pisco_pipeline/pisco_photometry.py %s" % field
+        #     print cmd
+        #     sub = subprocess.check_call(shlex.split(cmd))
 
-        if os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
-            cmd = "python pisco_pipeline/pisco_redsequence.py %s" % field
-            print cmd
-            sub = subprocess.check_call(shlex.split(cmd))
+        # if os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
+        #     cmd = "python pisco_pipeline/pisco_redsequence.py %s" % field
+        #     print cmd
+        #     sub = subprocess.check_call(shlex.split(cmd))

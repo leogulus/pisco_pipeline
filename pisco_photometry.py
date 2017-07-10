@@ -54,10 +54,11 @@ def sex_band(field, band):
     - create sextractor output file (e.g., testField026_i.fits) which have all the location of
     objects that we are interested in.
     """
-    seeing=Table.read('/Users/taweewat/Dropbox/Documents/MIT/Observation/2017_1/PISCO_Jan17_seeing.csv')
-    see=seeing[seeing['Field']==int(field[-3:])]['Seeing'][0]
+    # seeing=Table.read('/Users/taweewat/Dropbox/Documents/MIT/Observation/2017_1/PISCO_Jan17_seeing.csv')
+    # see=seeing[seeing['Field']==int(field[-3:])]['Seeing'][0]
+    see=1.
     outname=os.path.join('final','test%s_%s.fits'%(field,band))
-    cmd="sex %s -c config_slr.sex -CATALOG_NAME %s -SEEING_FWHM %s" % (os.path.join('final','coadd_c%s_%s.fits'%(field,band)),outname,str(see))
+    cmd="sex %s -c pisco_pipeline/config_slr.sex -CATALOG_NAME %s -SEEING_FWHM %s" % (os.path.join('final','coadd_c%s_%s.fits'%(field,band)),outname,str(see))
     print cmd
     sub=subprocess.check_call(shlex.split(cmd))
     return outname
@@ -87,7 +88,7 @@ def aperature_f(field, band, aper_rad=1.8, annu_in=3., annu_out=6.):
         pos_filename = sex_band(field, 'i')
 
     t7 = Table.read(pos_filename)
-    positions = SkyCoord(t7['XWIN_WORLD'], t7['YWIN_WORLD'], frame='icrs')
+    positions = SkyCoord(t7['ALPHA_J2000'], t7['DELTA_J2000'], frame='icrs')
     apertures = SkyCircularAperture(positions, r=aper_rad * u.arcsec)
     annulus_apertures = SkyCircularAnnulus(
         positions, r_in=annu_in * u.arcsec, r_out=annu_out * u.arcsec)
@@ -114,7 +115,7 @@ def create_star_fits_slr(field, g, r, i, z):
     - field: object of interset e.g., 'Field026'
     - g, r, i, z:
     OUTPUT:
-    - a new table with celestial coordinates (XWIN_WORLD, YWIN_WORLD) and magnitude from g, r, i, z band
+    - a new table with celestial coordinates (ALPHA_J2000, DELTA_J2000) and magnitude from g, r, i, z band
     """
     pos_filename = os.path.join('final', 'test%s_%s.fits' % (field, 'i'))
     if not os.path.isfile(pos_filename):
@@ -136,8 +137,8 @@ def create_star_fits_slr(field, g, r, i, z):
     total['magierr'] = 1.0857 / total["snr_i"]
     total['magzerr'] = 1.0857 / total["snr_z"]
 
-    total["XWIN_WORLD"] = total["celestial_center_i"].ra.degree
-    total["YWIN_WORLD"] = total["celestial_center_i"].dec.degree
+    total["ALPHA_J2000"] = total["celestial_center_i"].ra.degree
+    total["DELTA_J2000"] = total["celestial_center_i"].dec.degree
 
     star = total[(total["CLASS_STAR"] > 0.9) & (total['magi']>-13.4)]
     #magnitude cut for saturated stars (pix~1400 for the whole aperature of radius 7.5 px => mag~-13.4)
@@ -147,12 +148,12 @@ def create_star_fits_slr(field, g, r, i, z):
     write_ds9_region_sky(gal, "celestial_center_i",
                          'green', 'gal_%s.reg' % field)
 
-    starr = star[['id', 'XWIN_WORLD', 'YWIN_WORLD', 'magg', 'magr', 'magi',
+    starr = star[['id', 'ALPHA_J2000', 'DELTA_J2000', 'magg', 'magr', 'magi',
                   'magz', 'maggerr', 'magrerr', 'magierr', 'magzerr', 'CLASS_STAR']]
     starr.meta['aperture_photometry_args'] = u"method='exact'"
     starr.write('star_%s.fits' % field, overwrite=True)
     print "writeout 'star_%s.fits' file for slr to run" % field
-    return total[['id', 'XWIN_WORLD', 'YWIN_WORLD', 'magg', 'magr', 'magi', 'magz',
+    return total[['id', 'ALPHA_J2000', 'DELTA_J2000', 'magg', 'magr', 'magi', 'magz',
                   'maggerr', 'magrerr', 'magierr', 'magzerr', 'CLASS_STAR']]
 
 
@@ -167,7 +168,7 @@ def slr_running(field, bigmacs="pisco_pipeline/big-macs-calibrate-master"):
     """
     infile = 'star_%s.fits' % field
     pyfile = os.path.join(bigmacs, 'fit_locus.py')
-    cmd = "python %s --file %s --columns %s --extension 1 --bootstrap 5 -l -r XWIN_WORLD -d YWIN_WORLD -j --plot=PLOTS_%s" \
+    cmd = "python %s --file %s --columns %s --extension 1 --bootstrap 5 -l -r ALPHA_J2000 -d DELTA_J2000 -j --plot=PLOTS_%s" \
         % (pyfile, infile, os.path.join(bigmacs, "coadd_mag.columns"), field)
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))

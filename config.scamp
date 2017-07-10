@@ -18,7 +18,7 @@ ASTREF_CATALOG          2MASS          # NONE, FILE, USNO-A1,USNO-A2,USNO-B1,
 ASTREF_BAND            DEFAULT         # Photom. band for astr.ref.magnitudes
                                        # or DEFAULT, BLUEST, or REDDEST
 ASTREFMAG_LIMITS       -99.0,99.0      # Select magnitude range in ASTREF_BAND
-SAVE_REFCATALOG        Y               # Save ref catalogs in FITS-LDAC format?
+SAVE_REFCATALOG        N               # Save ref catalogs in FITS-LDAC format?
 REFOUT_CATPATH         .               # Save path for reference catalogs
 
 #--------------------------- Merged output catalogs ---------------------------
@@ -37,16 +37,16 @@ MATCH                  Y               # Do pattern-matching (Y/N) ?
 MATCH_NMAX             0               # Max.number of detections for MATCHing
                                        # (0=auto)
 PIXSCALE_MAXERR        1.2             # Max scale-factor uncertainty
-POSANGLE_MAXERR        5.0             # Max position-angle uncertainty (deg)
+POSANGLE_MAXERR        2.0             # Max position-angle uncertainty (deg)
 POSITION_MAXERR        1.0             # Max positional uncertainty (arcmin)
 MATCH_RESOL            0               # Matching resolution (arcsec); 0=auto
-MATCH_FLIPPED          N               # Allow matching with flipped axes?
+MATCH_FLIPPED          Y               # Allow matching with flipped axes?
 MOSAIC_TYPE            UNCHANGED       # UNCHANGED, SAME_CRVAL, SHARE_PROJAXIS,
                                        # FIX_FOCALPLANE or LOOSE
 
 #---------------------------- Cross-identification ----------------------------
 
-CROSSID_RADIUS         2.0             # Cross-id initial radius (arcsec)
+CROSSID_RADIUS         1.0             # Cross-id initial radius (arcsec)
 
 #---------------------------- Astrometric solution ----------------------------
 
@@ -92,7 +92,7 @@ AHEADER_SUFFIX         .ahead          # Filename extension for additional
                                        # INPUT headers
 HEADER_SUFFIX          .head           # Filename extension for OUTPUT headers
 VERBOSE_TYPE           NORMAL          # QUIET, NORMAL, LOG or FULL
-WRITE_XML              Y               # Write XML file (Y/N)?
+WRITE_XML              N               # Write XML file (Y/N)?
 XML_NAME               scamp.xml       # Filename for XML output
 NTHREADS               0               # Number of simultaneous threads for
                                        # the SMP version of SCAMP

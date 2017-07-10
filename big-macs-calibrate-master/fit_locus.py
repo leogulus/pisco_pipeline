@@ -431,7 +431,7 @@ def get_catalog_parameters(fulltable, racol, deccol):
     RA = scipy.median(fulltable.data.field(racol))
     RA_DIFF_SQ = ((fulltable.data.field(racol) - RA) * 60. * scipy.cos(DEC))**2.
 
-    RADII = (DEC_DIFF_SQ + RA_DIFF_SQ)**0.5
+    RADII = 2*(DEC_DIFF_SQ + RA_DIFF_SQ)**0.5
 
     return RA, DEC, RADII.max()
 
@@ -1333,7 +1333,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
             else:
 
-                resid_thresh = 6
+                resid_thresh = 20
                 bands = bands[residuals < resid_thresh]
                 bands_err = bands_err[residuals < resid_thresh]
                 locus_matrix = locus_matrix[residuals < resid_thresh]
