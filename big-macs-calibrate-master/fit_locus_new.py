@@ -431,7 +431,7 @@ def get_catalog_parameters(fulltable, racol, deccol):
     RA = scipy.median(fulltable.data.field(racol))
     RA_DIFF_SQ = ((fulltable.data.field(racol) - RA) * 60. * scipy.cos(DEC))**2.
 
-    RADII = (DEC_DIFF_SQ + RA_DIFF_SQ)**0.5
+    RADII = 2*(DEC_DIFF_SQ + RA_DIFF_SQ)**0.5
 
     return RA, DEC, RADII.max()
 
@@ -670,6 +670,9 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
     print len(sdss_mags), len(SeqNr)
 
 
+
+
+
     ''' now calibrate using only bright u'-band stars '''
     if len(blue_input_info):
         #pylab.scatter(sdss_mags[:,1], sdss_mags[:,1] - sdss_mags[:,2])
@@ -879,7 +882,7 @@ def fit(table, input_info_unsorted, mag_locus,
         ''' make matrix with a full set of locus points for each star '''
         locus_matrix = scipy.array(number_all_stars*[locus_list])
         sdss_locus_matrix = scipy.array(number_all_stars*[sdss_locus_list])
-        print 'locus_matrix=', locus_matrix.shape
+        #print locus_matrix.shape
 
         ''' assemble matricies to make instrumental measured bands '''
         SeqNr = table.field('SeqNr')
@@ -895,8 +898,6 @@ def fit(table, input_info_unsorted, mag_locus,
         #print A_err.shape
         ''' only use stars with errors less than max_err '''
 
-        print 'here is A_band', A_band.shape
-        print '----'
         print A_band
         if True:
             mask = A_err > max_err
@@ -906,12 +907,10 @@ def fit(table, input_info_unsorted, mag_locus,
         ''' make matrix specifying good values '''
 
         good = scipy.ones(A_band.shape)
-        print 'here is good', good.shape
         good[abs(A_band) == 99] = 0
         good[abs(A_band) == 0] = 0
         good = good[:,0,:]
         good_bands_per_star = good.sum(axis=1) # sum all of the good bands for any given star
-        print 'here is good', good.shape
 
         #print good_bands_per_star
 
@@ -955,7 +954,6 @@ def fit(table, input_info_unsorted, mag_locus,
         good = scipy.ones(A_band.shape)
         good[abs(A_band) == 99] = 0
         good[abs(A_band) == 0] = 0
-        print 'here is good2', good.shape
 
         global itr
         itr = 0
@@ -1258,7 +1256,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
 
             ''' starting guess for zeropoint : median hold instrumental magnitude - median hold locus magnitude '''
-            print 'new A_band', A_band.shape, good.shape
+            #print A_band.shape
 
 
             if iteration == 'full':
@@ -1270,11 +1268,8 @@ def fit(table, input_info_unsorted, mag_locus,
                         info_hold = filter(lambda x: x['HOLD_VARY'] == 'HOLD', input_info) #[0]['mag']
                         ''' calculate average color for actual and model locus '''
                         diff = A_band[:,0,i] - A_band[:,0,0]
-                        print good[:,0,i].shape, good[:,0,0].shape
+                        print A_band.shape, good.shape
                         good_diff = good[:,0,i] + good[:,0,0]
-                        print diff.shape, good_diff.shape
-                        print good_diff
-                        print diff
                         print scipy.sum(good[:,0,i]), 'number of good measurements in band'
                         diff = diff[good_diff == 2]
 
@@ -1308,7 +1303,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
             #print 'starting'
 
-            print 'out=', out
+            print out,
             print [zps_hold[a['mag']] for a in hold_input_info]
 
             #[zps_hold[a['mag']] for a in hold_input_info] +
@@ -1332,25 +1327,22 @@ def fit(table, input_info_unsorted, mag_locus,
                 sdss_locus_matrix = sdss_locus_matrix[residuals < resid_thresh]
                 SeqNr = SeqNr[residuals < resid_thresh]
                 good = good[residuals < resid_thresh]
-                A_band = A_band[residuals < resid_thresh] #add A_band Champ 7/19/17
                 end_of_locus = end_of_locus[residuals < resid_thresh]
                 dist = dist[residuals < resid_thresh]
                 sdss_mags = sdss_mags[residuals < resid_thresh]
 
             else:
 
-                resid_thresh = 6
+                resid_thresh = 20
                 bands = bands[residuals < resid_thresh]
                 bands_err = bands_err[residuals < resid_thresh]
                 locus_matrix = locus_matrix[residuals < resid_thresh]
                 sdss_locus_matrix = sdss_locus_matrix[residuals < resid_thresh]
                 SeqNr = SeqNr[residuals < resid_thresh]
                 good = good[residuals < resid_thresh]
-                A_band = A_band[residuals < resid_thresh] #add A_band Champ 7/19/17
                 end_of_locus = end_of_locus[residuals < resid_thresh]
                 dist = dist[residuals < resid_thresh]
                 sdss_mags = sdss_mags[residuals < resid_thresh]
-                residuals = residuals[residuals < resid_thresh] #add residuals Champ 7/19/17
 
                 ''' first filter on distance '''
                 bands = bands[dist < 3]
@@ -1359,7 +1351,6 @@ def fit(table, input_info_unsorted, mag_locus,
                 sdss_locus_matrix = sdss_locus_matrix[dist < 3]
                 SeqNr = SeqNr[dist < 3]
                 good = good[dist < 3]
-                A_band = A_band[dist < 3] #add A_band Champ 7/19/17
                 residuals = residuals[dist < 3]
                 end_of_locus = end_of_locus[dist < 3]
                 sdss_mags = sdss_mags[dist < 3]
@@ -1373,7 +1364,6 @@ def fit(table, input_info_unsorted, mag_locus,
                     SeqNr = SeqNr[end_of_locus]
                     #print end_of_locus[:,0]
                     good = good[end_of_locus]
-                    A_band = A_band[end_of_locus]  #add A_band Champ 7/19/17
                     sdss_mags = sdss_mags[end_of_locus]
 
             #print number_good_stars, len(locus_matrix)
@@ -1405,7 +1395,7 @@ def fit(table, input_info_unsorted, mag_locus,
             else:
                 print 'NO OUTLYING STARS OR STARS MATCHING BLUE END OF LOCUS, PROCEEDING'
                 keep_fitting = False
-            print 'good end=', good.shape, locus_matrix.shape
+
 
         results[iteration] = dict(zip([a['mag'] for a in input_info],([zps_hold[a['mag']] for a in hold_input_info] + out.tolist())))
         results['sdss_mags_' + iteration] = copy(sdss_mags)

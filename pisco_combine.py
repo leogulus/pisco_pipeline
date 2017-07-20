@@ -156,7 +156,7 @@ def save_fits(index, dir, outdir, fieldname, final_image, name):
     hdu_l.writeto(outname, overwrite=True)
 
     data, header = fits.getdata(outname, header=True)
-    fits.writeto(outname, data, header, clobber=True)
+    fits.writeto(outname, data, header, overwrite=True)
 
 
 def reduce_data(dir, index, fieldname, flat='domeflat'):
@@ -284,7 +284,7 @@ def astrometry_solve(cosmicdir, field, outdir):
     wcsaxes_index = np.where(np.array(header.keys()) == 'WCSAXES')[0][0]
     for i in range(wcsaxes_index, len(header)):
         orig[0].header[header.keys()[i]] = header.values()[i]
-    orig.writeto(os.path.join('new_fits', field + '_new.fits'), clobber=True)
+    orig.writeto(os.path.join('new_fits', field + '_new.fits'), overwrite=True)
 
 
 def sextracting(field, band):
@@ -302,21 +302,21 @@ def sextracting(field, band):
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-    cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII' % \
-        (os.path.join('new_fits', field + '_new.fits'), band,
-         os.path.join('new_fits', 'tmp.cat'))
-    print cmd
-    sub = subprocess.check_call(shlex.split(cmd))
-
-    name=['NUMBER','EXT_NUMBER','XWIN_WORLD','YWIN_WORLD','MAG_AUTO','MAGERR_AUTO','MAG_APER','MAGERR_APER','XWIN_IMAGE',\
-          'YWIN_IMAGE','ERRAWIN_IMAGE','ERRBWIN_IMAGE','ERRTHETAWIN_IMAGE','FLUX_AUTO','FLUXERR_AUTO','FLAGS',\
-          'FLUX RADIUS']
-    df0=pd.read_csv(os.path.join('new_fits', 'tmp.cat'),delim_whitespace=True,names=name)
-    hdu=fits.open(os.path.join('new_fits', field + '_new.ldac.fits'))
-    print 'number of total stars found', df0.shape
-    print 'number of stars using in Sextractor', len(np.array(df0[df0['FLAGS']==0].index))
-    hdu[2].data=hdu[2].data[np.array(df0[df0['FLAGS']==0].index)]
-    hdu.writeto(os.path.join('new_fits', field + '_new.ldac.fits'), overwrite=True)
+    # cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII' % \
+    #     (os.path.join('new_fits', field + '_new.fits'), band,
+    #      os.path.join('new_fits', 'tmp.cat'))
+    # print cmd
+    # sub = subprocess.check_call(shlex.split(cmd))
+    #
+    # name=['NUMBER','EXT_NUMBER','XWIN_WORLD','YWIN_WORLD','MAG_AUTO','MAGERR_AUTO','MAG_APER','MAGERR_APER','XWIN_IMAGE',\
+    #       'YWIN_IMAGE','ERRAWIN_IMAGE','ERRBWIN_IMAGE','ERRTHETAWIN_IMAGE','FLUX_AUTO','FLUXERR_AUTO','FLAGS',\
+    #       'FLUX RADIUS','CLASS_STAR','ALPHA_J2000','DELTA_J2000']
+    # df0=pd.read_csv(os.path.join('new_fits', 'tmp.cat'),delim_whitespace=True,names=name)
+    # hdu=fits.open(os.path.join('new_fits', field + '_new.ldac.fits'))
+    # print 'number of total stars found', df0.shape
+    # print 'number of stars using in Sextractor', len(np.array(df0[df0['FLAGS']==0].index))
+    # hdu[2].data=hdu[2].data[np.array(df0[df0['FLAGS']==0].index)]
+    # hdu.writeto(os.path.join('new_fits', field + '_new.ldac.fits'), overwrite=True)
 
 def scamp(fieldname):
     """
@@ -423,7 +423,7 @@ if __name__ == "__main__":
         astrometry_solve(cosmicdir, field, outdir)
         # Sextracting
         band=field.split('_')[3]; print band
-        sextracting(field, band)
+        sextracting(field, band[0])
 
     if fieldname == 'Field173':
         cmd = 'rm new_fits/cField173_A_100_i_new.fits'

@@ -9,6 +9,11 @@ import cosmics
 import shlex
 import sys
 # --------
+"""
+python pisco_pipeline/pisco_combine_v2.py ut170624/ SDSS603 'twilight'
+"""
+
+
 
 def filter_name(index):
     """
@@ -183,7 +188,7 @@ def save_fits(index, dir, outdir, fieldname, final_image, name, size=1546):
     hdu_l.writeto(outname, overwrite=True)
 
     data, header = fits.getdata(outname, header=True)
-    fits.writeto(outname, data, header, clobber=True)
+    fits.writeto(outname, data, header, overwrite=True)
 
 def cosmic_reduce(dir, field, band, num):
     """
@@ -253,7 +258,7 @@ def astrometry_solve(cosmicdir, field, outdir):
     wcsaxes_index = np.where(np.array(header.keys()) == 'WCSAXES')[0][0]
     for i in range(wcsaxes_index, len(header)):
         orig[0].header[header.keys()[i]] = header.values()[i]
-    orig.writeto(os.path.join('new_fits', field + '_new.fits'), clobber=True)
+    orig.writeto(os.path.join('new_fits', field + '_new.fits'), overwrite=True)
 
 def sextracting(field, band):
     """
@@ -328,6 +333,7 @@ def save_rgb_image(field):
     sub = subprocess.check_call(shlex.split(cmd))
     print 'finished saving final/img%s.eps' % field
 # --------
+
 
 
 if __name__ == "__main__":

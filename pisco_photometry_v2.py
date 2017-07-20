@@ -6,6 +6,7 @@ from astropy.io import fits
 from astropy.table import Table, join
 from astropy.coordinates import SkyCoord
 from astropy import units as u
+from astropy.wcs import WCS
 from photutils import aperture_photometry
 from photutils import SkyCircularAperture
 from photutils import SkyCircularAnnulus
@@ -63,6 +64,11 @@ def sex_band(field, band):
     sub=subprocess.check_call(shlex.split(cmd))
     return outname
 
+def cut(x):
+    if x>0:
+        return x
+    else:
+        return 0.
 
 def aperature_f(field, band, aper_rad=3., annu_in=5., annu_out=10.):
     """
@@ -81,30 +87,62 @@ def aperature_f(field, band, aper_rad=3., annu_in=5., annu_out=10.):
     - a new table with the photometry for the number of count for a specific 'band'
     """
     hdu = fits.open("final/coadd_c%s_%s.fits" % (field, band))
+    w = WCS("final/coadd_c%s_%s.fits" % (field, band))
 
     pos_filename = os.path.join('final', 'pos%s_%s.fits' % (field, 'i'))
     if not os.path.isfile(pos_filename):
         print 'sextracting the i band position for %s' % field
         pos_filename = sex_band(field, 'i')
 
-    t7 = Table.read(pos_filename)
+    t6 = Table.read(pos_filename)
+    t7 = t6[t6['CLASS_STAR']>0.9]   #only select stas for calibartion
     positions = SkyCoord(t7['ALPHA_J2000'], t7['DELTA_J2000'], frame='icrs')
-    apertures = SkyCircularAperture(positions, r=aper_rad * u.arcsec)
-    annulus_apertures = SkyCircularAnnulus(
-        positions, r_in=annu_in * u.arcsec, r_out=annu_out * u.arcsec)
-    apers = [apertures, annulus_apertures]
 
-    phot_table = aperture_photometry(hdu[0], apers)
-    phot_table2 = phot_table[np.isfinite(phot_table['aperture_sum_0'])]
-    phot_table3 = phot_table2[np.where(phot_table2['aperture_sum_0'] > 0)]
+    radii=np.arange(0.2,7,0.1)
+    apertures = [SkyCircularAperture(positions, r=r*u.arcsec) for r in radii]
+    bkg_apertures=[]
+    for r in radii:
+        bkg_apertures.append(SkyCircularAnnulus(positions, r_in=(r+2)*u.arcsec, r_out=(r+5)*u.arcsec))
+    apertures.extend(bkg_apertures)
 
-    snr = phot_table3['aperture_sum_0'] / \
-        (np.sqrt(phot_table3['aperture_sum_0']))
-    phot_table3['snr'] = snr
+    phot_table = aperture_photometry(hdu[0], apertures)
+    for i in range(len(radii)):
+        bkg_per_px = phot_table['aperture_sum_%s'%str(i+len(radii))]/apertures[i+len(radii)].to_pixel(w).area()
+        bkg_per_star = bkg_per_px*apertures[i].to_pixel(w).area()
+        phot_table['final_%i'%i]=phot_table['aperture_sum_%s'%str(i)]-bkg_per_star
 
-    for name in phot_table3.colnames[1:]:
-        phot_table3.rename_column(name, name + '_%s' % band)
-    return phot_table3
+    table=phot_table[phot_table.colnames[-1-len(radii):-1]]
+    dfd=table.to_pandas()
+    dfd=dfd.applymap(cut)
+    kronr=(dfd*radii).sum(axis=1)/dfd.sum(axis=1)
+    kronr[np.isnan(kronr)]=1.  #remove all the zeros to be 1.
+
+    for i in range(len(table)):
+        RA=phot_table['celestial_center'].ra.value[i]*u.degree
+        DEC=phot_table['celestial_center'].dec.value[i]*u.degree
+        positions = SkyCoord(RA, DEC, frame='fk5')
+        rad = 2.5*kronr[i]
+        aperture=SkyCircularAperture(positions, r=rad*u.arcsec)
+        bkg_aperture=SkyCircularAnnulus(positions, r_in=(rad+1)*u.arcsec, r_out=(rad+3)*u.arcsec)
+        apertures=[aperture,bkg_aperture]
+        phot_tabled = aperture_photometry(hdu[0], apertures)
+        bkg_per_px = phot_tabled['aperture_sum_1']/apertures[1].to_pixel(w).area()
+        bkg_per_star = bkg_per_px*apertures[0].to_pixel(w).area()
+        phot_tabled['final_0']=cut(phot_tabled['aperture_sum_0']-bkg_per_star)
+        phot_tabled['snr'] = phot_tabled['final_0'] / (np.sqrt(phot_tabled['final_0'])+1e-3)
+        if i == 0:
+            phot_tablei=phot_tabled
+        else:
+            phot_tablei.add_row(phot_tabled[0])
+
+    phot_tablei["CLASS_STAR"] = t7["CLASS_STAR"]
+    phot_tablei["FLAGS"] = t7["FLAGS"]
+    phot_tablei['id']=np.arange(0,len(phot_tablei),1)
+    # phot_table2=phot_tabled[phot_tabled['final_0']>0]
+
+    for name in phot_tablei.colnames[1:]:
+        phot_tablei.rename_column(name, name + '_%s' % band)
+    return phot_tablei
 
 
 def create_star_fits_slr(field, g, r, i, z):
@@ -125,37 +163,44 @@ def create_star_fits_slr(field, g, r, i, z):
 
     print 'joining g,r,i,z band together for %s...' % field
     total = join(join(join(i, g, keys='id'), r, keys='id'), z, keys='id')
-    total["CLASS_STAR"] = t7[total['id'] - 1]["CLASS_STAR"]
-    total["FLAGS"] = t7[total['id'] - 1]["FLAGS"]
+    # total["CLASS_STAR"] = t7[total['id'] - 1]["CLASS_STAR"]
+    # total["FLAGS"] = t7[total['id'] - 1]["FLAGS"]
 
-    total['magg'] = -2.5 * np.array(map(np.log10, total['aperture_sum_0_g']))
-    total['magr'] = -2.5 * np.array(map(np.log10, total['aperture_sum_0_r']))
-    total['magi'] = -2.5 * np.array(map(np.log10, total['aperture_sum_0_i']))
-    total['magz'] = -2.5 * np.array(map(np.log10, total['aperture_sum_0_z']))
+    total=total[total['final_0_g']>0]; print 'after remove zero g', len(total)
+    total=total[total['final_0_r']>0]; print 'after remove zero r', len(total)
+    total=total[total['final_0_i']>0]; print 'after remove zero i', len(total)
+    total=total[total['final_0_z']>0]; print 'after remove zero z', len(total)
+
+    total['magg'] = -2.5 * np.array(map(np.log10, total['final_0_g']))
+    total['magr'] = -2.5 * np.array(map(np.log10, total['final_0_r']))
+    total['magi'] = -2.5 * np.array(map(np.log10, total['final_0_i']))
+    total['magz'] = -2.5 * np.array(map(np.log10, total['final_0_z']))
 
     total['maggerr'] = 1.0857 / total["snr_g"]
     total['magrerr'] = 1.0857 / total["snr_r"]
     total['magierr'] = 1.0857 / total["snr_i"]
     total['magzerr'] = 1.0857 / total["snr_z"]
 
-    total["ALPHA_J2000"] = total["celestial_center_i"].ra.degree
-    total["DELTA_J2000"] = total["celestial_center_i"].dec.degree
+    total["ALPHA_J2000"] = np.array([i.ra.degree for i in total['celestial_center_i']])
+    total["DELTA_J2000"] = np.array([i.dec.degree for i in total['celestial_center_i']])
 
-    star = total[(total["CLASS_STAR"] > 0.9) & (total['magi']>-13.4)]
+    star = total[(total["CLASS_STAR_i"] > 0.9)]# & (total['magi']>-13.4)]
     #magnitude cut for saturated stars (pix~1400 for the whole aperature of radius 7.5 px => mag~-13.4)
-    gal = total[total["CLASS_STAR"] < 0.75]
+    gal = total[total["CLASS_STAR_i"] < 0.75]
+
     # write_ds9_region_sky(star, "celestial_center_i",
     #                      'red', 'star_%s.reg' % field)
     # write_ds9_region_sky(gal, "celestial_center_i",
     #                      'green', 'gal_%s.reg' % field)
 
     starr = star[['id', 'ALPHA_J2000', 'DELTA_J2000', 'magg', 'magr', 'magi',
-                  'magz', 'maggerr', 'magrerr', 'magierr', 'magzerr', 'CLASS_STAR','FLAGS']]
-    starr.meta['aperture_photometry_args'] = u"method='exact'"
+                  'magz', 'maggerr', 'magrerr', 'magierr', 'magzerr', 'CLASS_STAR_i','FLAGS_i']]
+    # starr.meta['aperture_photometry_args'] = u"method='exact'"
+    starr.meta[u'aperture_photometry_args'] = "nan"
     starr.write('star_%s.fits' % field, overwrite=True)
     print "writeout 'star_%s.fits' file for slr to run" % field
     return total[['id', 'ALPHA_J2000', 'DELTA_J2000', 'magg', 'magr', 'magi', 'magz',
-                  'maggerr', 'magrerr', 'magierr', 'magzerr', 'CLASS_STAR','FLAGS']]
+                  'maggerr', 'magrerr', 'magierr', 'magzerr', 'CLASS_STAR_i','FLAGS_i']]
 
 
 def slr_running(field, bigmacs="pisco_pipeline/big-macs-calibrate-master"):
@@ -213,6 +258,8 @@ and determine which objects are stars/galaxies.
 The pipeline is a combination of SLR algorithm (cite: https://github.com/patkel/big-macs-calibrate)
 and Photutils for photometry aperatures
 
+V2: update the photometry to calculate Kron radius instead of using a fix radius for each objects
+
 ARGUMENTS:
 1. fieldname for object (e.g., 'Field027')
 
@@ -230,13 +277,18 @@ if __name__ == "__main__":
 
     field = str(sys.argv[1])
     r = aperature_f(field, 'r')
+    print 'finished r', len(r)
     i = aperature_f(field, 'i')
+    print 'finished i', len(i)
     z = aperature_f(field, 'z')
+    print 'finished z', len(z)
     g = aperature_f(field, 'g')
+    print 'finished g', len(g)
     print 'len in g, r, i, z bands:', len(g), len(r), len(i), len(z)
 
     total = create_star_fits_slr(field, g, r, i, z)
     slr_running(field)
+
     ntotal = update_color('star_%s.fits.offsets.list' % field, total)
     ntotal.write(os.path.join(slrdir, 'ntotal_%s.csv' % field), overwrite=True)
 
