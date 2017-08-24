@@ -22,6 +22,10 @@ ARGUMENTS:
 Examples: python pisco_pipeline/pisco_combine.py data/ Field026
 """
 
+## add twilight option to use twilight flats
+## add look up seeing (FWHM) from the header
+
+
 
 def filter_name(index):
     """
@@ -44,7 +48,6 @@ def filter_name(index):
         elif index == 7 or index == 8:
             filter_name = 'z'
     return [filter_name, dome_name]
-
 
 def list_file_name(dir, name, end=0):
     """
@@ -69,6 +72,27 @@ def list_file_name(dir, name, end=0):
         print 'Cannot find the files'
     return names
 
+def list_file_name_seeing(dir, name, end=0, startdir=0):
+    names=[]
+    for root, dirs, files in os.walk(dir):
+        for file in files:
+            if file.startswith(name):
+                if end == 0:
+                    if startdir == 0:
+                        names.append(os.path.join(root, file))
+                    else:
+                        if root.split('/')[-1][:2]==startdir:
+                            names.append(os.path.join(root, file))
+                else:
+                    if file.endswith(end):
+                        if startdir == 0:
+                            names.append(os.path.join(root, file))
+                        else:
+                            if root.split('/')[-1][:2]==startdir:
+                                names.append(os.path.join(root, file))
+    if len(names) == 0:
+        print 'Cannot find the files'
+    return names
 
 def open_files(names, index, bias=np.array([]), twilight=False):
     """
@@ -98,7 +122,6 @@ def open_files(names, index, bias=np.array([]), twilight=False):
     else:
         return np.mean(np.array(ch_bs), axis=0)
 
-
 def plot_one_chip(ax, data, vmin, vmax):
     """
     plot_one_chip: plot 2D array 'data' on 'ax' with Normalize scale 'vmin' and 'vmax'
@@ -118,7 +141,6 @@ def plot_one_chip(ax, data, vmin, vmax):
     ax.imshow(data, cmap=c_m, norm=norm)
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
-
 
 def save_fits(index, dir, outdir, fieldname, final_image, name):
     """
@@ -229,6 +251,7 @@ def cosmic_reduce(dir, field, band):
     """
     array, header = cosmics.fromfits(
         os.path.join(dir, field + '_' + band + '.fits'))
+    print os.path.join(dir, field + '_' + band + '.fits')
     # cutting the circular aperature of the image out to only have good pixels
     # in the center
     if band == 'g':
@@ -249,7 +272,6 @@ def cosmic_reduce(dir, field, band):
                                 '_' + band + '.fits'), c.cleanarray, header)
     # cosmics.tofits(os.path.join(dir, 'cosmics', 'm' + field +
     #                             '_' + band + '.fits'), c.mask, header)
-
 
 def astrometry_solve(cosmicdir, field, outdir):
     """
@@ -292,31 +314,37 @@ def sextracting(field, band):
     sextracting: run Sextractor to find all the point sources in .ldac.fits format (suitable for SCAMP input)
     INPUT:
     - config.sex: sextractor config file
-    - field: begining of the file name for each band and each exposure (e.g. 'cField027_B_73_z')
+    - field: begining of the file name for each band and each exposure (e.g. 'cSDSS123_B_64_r')
     OUTPUT:
     - new_fits/..._new.ldac.fits: source catalogs of all the point source from Sextractor
     """
-    cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s' % \
+
+    fieldname=field.split('_')[0][1:]
+    seeing=float(fits.open(list_file_name_seeing('/Users/taweewat/Documents/pisco_code/',fieldname,startdir='ut')[0])[0].header['FWHM1'])
+
+    cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s -SEEING_FWHM %s' % \
         (os.path.join('new_fits', field + '_new.fits'), band,
-         os.path.join('new_fits', field + '_new.ldac.fits'))
+         os.path.join('new_fits', field + '_new.ldac.fits'), str(seeing))
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-    # cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII' % \
-    #     (os.path.join('new_fits', field + '_new.fits'), band,
-    #      os.path.join('new_fits', 'tmp.cat'))
-    # print cmd
-    # sub = subprocess.check_call(shlex.split(cmd))
-    #
-    # name=['NUMBER','EXT_NUMBER','XWIN_WORLD','YWIN_WORLD','MAG_AUTO','MAGERR_AUTO','MAG_APER','MAGERR_APER','XWIN_IMAGE',\
-    #       'YWIN_IMAGE','ERRAWIN_IMAGE','ERRBWIN_IMAGE','ERRTHETAWIN_IMAGE','FLUX_AUTO','FLUXERR_AUTO','FLAGS',\
-    #       'FLUX RADIUS','CLASS_STAR','ALPHA_J2000','DELTA_J2000']
-    # df0=pd.read_csv(os.path.join('new_fits', 'tmp.cat'),delim_whitespace=True,names=name)
-    # hdu=fits.open(os.path.join('new_fits', field + '_new.ldac.fits'))
-    # print 'number of total stars found', df0.shape
-    # print 'number of stars using in Sextractor', len(np.array(df0[df0['FLAGS']==0].index))
-    # hdu[2].data=hdu[2].data[np.array(df0[df0['FLAGS']==0].index)]
-    # hdu.writeto(os.path.join('new_fits', field + '_new.ldac.fits'), overwrite=True)
+    cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII -SEEING_FWHM %s' % \
+        (os.path.join('new_fits', field + '_new.fits'), band,
+         os.path.join('new_fits', 'tmp.cat'), str(seeing))
+    print cmd
+    sub = subprocess.check_call(shlex.split(cmd))
+
+    name=['NUMBER','EXT_NUMBER','XWIN_WORLD','YWIN_WORLD','MAG_AUTO','MAGERR_AUTO','MAG_APER','MAGERR_APER','XWIN_IMAGE',\
+          'YWIN_IMAGE','ERRAWIN_IMAGE','ERRBWIN_IMAGE','ERRTHETAWIN_IMAGE','FLUX_AUTO','FLUXERR_AUTO','FLAGS',\
+          'FLUX RADIUS','CLASS_STAR','ALPHA_J2000','DELTA_J2000']
+    df0=pd.read_csv(os.path.join('new_fits', 'tmp.cat'),delim_whitespace=True,names=name)
+    hdu=fits.open(os.path.join('new_fits', field + '_new.ldac.fits'))
+
+    print 'number of total stars (objects) found', df0.shape
+    df0=df0[(df0['CLASS_STAR']>0.5).values & (df0['FLAGS']<4).values]
+    print 'number of stars (CLASS_STAR>0.9 & FLAGS<4) using in Sextractor', len(np.array(df0.index))
+    hdu[2].data=hdu[2].data[np.array(df0.index)]
+    hdu.writeto(os.path.join('new_fits', field + '_new.ldac.fits'), overwrite=True)
 
 def scamp(fieldname):
     """
@@ -394,13 +422,13 @@ if __name__ == "__main__":
 
     fields = [name.split('/')[-1].split('.')[0]
               for name in list_file_name(dir, fieldname)]
-    for field in fields:
-        for index in [1, 3, 5, 7]:
-            ch1, bias1, domeflat1, img1 = reduce_data(dir, index, field, flat=flattype)
-            ch2, bias2, domeflat2, img2 = reduce_data(dir, index + 1, field, flat=flattype)
-            final_image = np.concatenate((img1, img2), axis=1)
-            save_fits(index, dir, reducedir, field, final_image,
-                      "%s_%s.fits" % (field, filter_name(index)[0]))
+    # for field in fields:
+    #     for index in [1, 3, 5, 7]:
+    #         ch1, bias1, domeflat1, img1 = reduce_data(dir, index, field, flat=flattype)
+    #         ch2, bias2, domeflat2, img2 = reduce_data(dir, index + 1, field, flat=flattype)
+    #         final_image = np.concatenate((img1, img2), axis=1)
+    #         save_fits(index, dir, reducedir, field, final_image,
+    #                   "%s_%s.fits" % (field, filter_name(index)[0]))
 
     # Cosmic ray reduction using L.A. Cosmic
     bands = ['g', 'r', 'i', 'z']
@@ -418,6 +446,7 @@ if __name__ == "__main__":
 
     for field_long in list_file_name(cosmicdir, cfieldname):
         field = field_long.split('/')[2].split('.')[0]
+        print 'Field', field
         # Astrometry to get a rough estimate on the World Coordinate System
         # (WCS) for each images
         astrometry_solve(cosmicdir, field, outdir)

@@ -11,6 +11,10 @@ import sys
 # --------
 """
 python pisco_pipeline/pisco_combine_v2.py ut170624/ SDSS603 'twilight'
+
+#v2: scamp only a pair of exposure map for each CCD, and later combined them together with SWARP
+
+Also include removing saturated stars
 """
 
 

@@ -64,7 +64,7 @@ def sex_band(field, band):
     return outname
 
 
-def aperature_f(field, band, aper_rad=3., annu_in=5., annu_out=10.):
+def aperature_f(field, band, aper_rad=1.8, annu_in=3., annu_out=6.):
     """
     aperature_f: running "photutils: aperture_photometry" to get the number of count within
     a radius 'aper_rad', comparing with the background annulus with inner radius 'annu_in' and
