@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib
-import os
+import os, re
 import pandas as pd
 
 from astropy.io import fits
@@ -22,6 +22,8 @@ ARGUMENTS:
 2. fieldname for object (e.g., 'Field027')
 
 Examples: python pisco_pipeline/pisco_combine.py data/ Field026
+python pisco_pipeline/pisco_combine.py ut170619/ Field022 'twilight'
+python pisco_pipeline/pisco_combine.py ut171209/ CHIPS0152-5028 'twilight'
 """
 
 ## add twilight option to use twilight flats
@@ -197,7 +199,14 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
     - domeflat: 2D array for the domeflat image
     - img: 2D array of the output image after subtraction of bias and normalization with domeflat
     """
-    cut = -27
+    print fieldname[0:5]
+    if fieldname[0:5]=='Field':
+        cut = -27
+    elif fieldname[0:5]=='CHIPS':
+        cut = -32
+    else:
+        print 'there is no fieldname for that'+fieldname
+    print cut
     # if index == 3:
     #     edge=20
     # elif index == 6:
@@ -211,11 +220,18 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
     ch1 = hdulist[index].data
 
     bias_names = list_file_name(dir, 'Bias_')
-    print bias_names
+    # print bias_names
     if flat == 'domeflat':
         domeflat_names = list_file_name(dir, "domeflat" + filter_name(index)[1])
+
     if flat == 'twilight':
-        domeflat_names = list_file_name(dir, "twiflat_")
+        if fieldname[0:5]=='Field':
+            domeflat_names = list_file_name(dir, "twiflat_")
+        elif fieldname[0:5]=='CHIPS':
+            domeflat_names = list_file_name(dir, "twiflats_")
+        else:
+            print 'there is no fieldname for twilight flat'+fieldname
+        # domeflat_names = list_file_name(dir, "twiflat_")
 
     bias = open_files(bias_names, index)
     if flat == 'domeflat':
@@ -261,33 +277,46 @@ def cosmic_reduce(dir, field, band):
     - cField..._g.fits: clean version, removed cosmic ray
     - mField..._g.fits: masked file to remove cosmic ray
     """
-    array, header = cosmics.fromfits(
-        os.path.join(dir, field + '_' + band + '.fits'))
-    print os.path.join(dir, field + '_' + band + '.fits')
-    # cutting the circular aperature of the image out to only have good pixels
-    # in the center
-    if band == 'g':
-        array_c = array[20:-20, 350:2550] #350:2550
-        satlv = 2000.0
-    elif band == 'r':
-        array_c = array[20:-20, 350:2550] #350:2550
-        satlv = 1250.0
-    elif band == 'i':
-        array_c = array[20:-20, 650:2800] #650:2800
-        satlv = 600.0
-    elif band == 'z':
-        array_c = array[20:-20, 650:2800] #650:2800
-        satlv = 1500.0
-    c = cosmics.cosmicsimage(array_c, gain=4.0, readnoise=3.0, sigclip=2.5, sigfrac=0.5,
-                             objlim=5.0, satlevel=satlv, verbose=False)
-    c.run(maxiter=5)
+    if not os.path.isfile(os.path.join(dir, 'cosmics', 'c' + field + '_' + band + '.fits')):
+        print 'working on the cosmic ' + 'c' + field + '_' + band
+        array, header = cosmics.fromfits(
+            os.path.join(dir, field + '_' + band + '.fits'))
+        print os.path.join(dir, field + '_' + band + '.fits')
+        # cutting the circular aperature of the image out to only have good pixels
+        # in the center
+        if band == 'g':
+            array_c = array[20:-20, 350:2550] #350:2550
+            satlv = 2000.0
+        elif band == 'r':
+            array_c = array[20:-20, 350:2550] #350:2550
+            satlv = 1250.0
+        elif band == 'i':
+            array_c = array[20:-20, 650:2800] #650:2800
+            satlv = 600.0
+        elif band == 'z':
+            array_c = array[20:-20, 650:2800] #650:2800
+            satlv = 1500.0
+        c = cosmics.cosmicsimage(array_c, gain=4.0, readnoise=3.0, sigclip=2.5, sigfrac=0.5,
+                                 objlim=5.0, satlevel=satlv, verbose=False)
+        c.run(maxiter=5)
+        cosmics.tofits(os.path.join(dir, 'cosmics', 'c' + field +
+                                    '_' + band + '.fits'), c.cleanarray, header)
+    else:
+        print 'already did the cosmic with this band ' + band
 
     # cosmics.tofits(os.path.join(dir, 'cosmics', 'n' + field +
     #                             '_' + band + '.fits'), array_c, header)
-    cosmics.tofits(os.path.join(dir, 'cosmics', 'c' + field +
-                                '_' + band + '.fits'), c.cleanarray, header)
+
     # cosmics.tofits(os.path.join(dir, 'cosmics', 'm' + field +
     #                             '_' + band + '.fits'), c.mask, header)
+
+def ra_dec(name):
+    ra=float(name[6:8])*15+float(name[8:10])/4.
+    if name[10]=='-':
+        dec=float(name[10:13])-float(name[13:15])/60.
+    else:
+        dec=float(name[10:13])+float(name[13:15])/60.
+    return ra, dec
 
 def astrometry_solve(cosmicdir, field, outdir):
     """
@@ -307,14 +336,22 @@ def astrometry_solve(cosmicdir, field, outdir):
     # if not os.path.exists(outdir):
     #     os.makedirs(os.path.join(outdir))
     if not os.path.isfile(os.path.join(outdir, field + '.wcs')):
-        cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s' \
-            % (os.path.join(cosmicdir, field + '.fits'), outdir)
+
+        if field[0:6]=='cCHIPS':
+            ra, dec=ra_dec(field)
+            cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s --ra %s --dec %s --radius 2' \
+                % (os.path.join(cosmicdir, field + '.fits'), outdir, str(ra), str(dec))
+        else:
+            cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s' \
+                % (os.path.join(cosmicdir, field + '.fits'), outdir)
         print cmd
         sub = subprocess.check_call(shlex.split(cmd))
         if sub == 0:
             print 'finish solve-field and updating fits headers'
         else:
             print 'solve-field does not work.'
+    else:
+        print 'already have '+field+'.wcs'
 
     orig = fits.open(os.path.join(cosmicdir, field + '.fits'))
     wcs_file = fits.open(os.path.join(outdir, field + '.wcs'))
@@ -358,7 +395,7 @@ def sextracting(field, band):
 
     print 'number of total stars (objects) found', df0.shape
     df0=df0[(df0['CLASS_STAR']>0.8).values & (df0['FLAGS']<5).values]
-    print 'number of stars (CLASS_STAR>0.9 & FLAGS<4) using in Sextractor', len(np.array(df0.index))
+    print 'number of stars (CLASS_STAR>0.8 & FLAGS<5) using in Sextractor', len(np.array(df0.index))
     hdu[2].data=hdu[2].data[np.array(df0.index)]
     hdu.writeto(os.path.join('new_fits', field + '_new.ldac.fits'), overwrite=True)
 
@@ -371,11 +408,10 @@ def sextracting(field, band):
     plt.imshow(img0, origin='lower',cmap=cmap,interpolation='none')
     plt.savefig('plt_bf_%s_%s.png'%(band,str(np.random.randint(100))))
 
-    img[~np.isin(img, df0['NUMBER'].values)]=0
+    img[~np.in1d(img, df0['NUMBER']).reshape(img.shape)]=0
     img = np.ma.masked_where(img < 0.05, img)
     plt.imshow(img, origin='lower',cmap=cmap,interpolation='none')
     plt.savefig('plt_%s_%s.png'%(band,str(np.random.randint(100))))
-
 
 def scamp(fieldname):#, band):
     """
@@ -441,6 +477,19 @@ def save_rgb_image(field):
     sub = subprocess.check_call(shlex.split(cmd))
     print 'finished saving final/img%s.eps' % field
 
+def purge(dir, pattern):
+    for f in os.listdir(dir):
+        if re.search(pattern, f):
+            print 'remove', f
+            os.remove(os.path.join(dir, f))
+
+def run_bash_code(cmd):
+    print cmd
+    try:
+        sub = subprocess.check_output(shlex.split(cmd))
+    except subprocess.CalledProcessError as e:
+        print e
+
 # --------
 
 
@@ -458,7 +507,7 @@ if __name__ == "__main__":
     if len(sys.argv)>3:
         flattype = str(sys.argv[3])
     else:
-        flattype='domeflat'
+        flattype = 'domeflat'
 
     if not os.path.exists(outdir):
         os.makedirs(os.path.join(outdir))
@@ -487,12 +536,12 @@ if __name__ == "__main__":
     bands = ['g', 'r', 'i', 'z']
     for field in fields:
         for band in bands:
-            if not os.path.isfile(os.path.join(reducedir, 'cosmics', 'c' + field + '_' + band + '.fits')):
-                print 'working on the cosmic ' + 'c' + field + '_' + band
-                cosmic_reduce(reducedir, field, band)
-            else:
-                print 'already did this band ' + band
-                # cosmic_reduce(reducedir,field,band)
+            # if not os.path.isfile(os.path.join(reducedir, 'cosmics', 'c' + field + '_' + band + '.fits')):
+            #     print 'working on the cosmic ' + 'c' + field + '_' + band
+            cosmic_reduce(reducedir, field, band)
+            # else:
+            #     print 'already did the cosmic with this band ' + band
+            #     # cosmic_reduce(reducedir,field,band)
 
     cfieldname = 'c' + fieldname
     print 'number of files in %s is %i' % (cosmicdir, len(list_file_name(cosmicdir, cfieldname)))
@@ -507,15 +556,11 @@ if __name__ == "__main__":
         astrometry_solve(cosmicdir, field, outdir)
         # Sextracting
         band=field.split('_')[3]; print band
-        # sextracting(field, band[0])
+        sextracting(field, band[0])
 
     if fieldname == 'Field173':
         cmd = 'rm new_fits/cField173_A_100_i_new.fits'
-        try:
-            print cmd
-            sub = subprocess.check_call(shlex.split(cmd))
-        except (ValueError, RuntimeError, TypeError, NameError):
-            pass
+        run_bash_code(cmd)
 
     # # SCAMP
     # # for band in bands:
@@ -525,4 +570,10 @@ if __name__ == "__main__":
     swarp(cfieldname)
     # # save eps file for RGB image
     save_rgb_image(fieldname)
-#
+
+    purge('reduced',"%s_.*\.fits" % fieldname)
+    purge('new_fits',"c%s_.*\.fits" % fieldname)
+    purge('wcs',"c%s_.*\.new" % fieldname)
+    #
+    # cmd = "rm -r new_fits/c%s_*_new.fits" % fieldname
+    # run_bash_code(cmd)

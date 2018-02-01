@@ -223,7 +223,6 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
     if flat == 'twilight':
         domeflat = open_files(domeflat_names, index, bias=bias, twilight=True)
 
-    # print domeflat.shape
     domeflat[domeflat == 0] = 1e-4
     # domeflat = np.clip(domeflat, 1e-4, 1e10)
 
@@ -359,8 +358,8 @@ def sextracting(field, band):
     df0=pd.read_csv(os.path.join('new_fits', 'tmp.cat'), delim_whitespace=True, names=name)
     hdu=fits.open(os.path.join('new_fits', field + '_new.ldac.fits'))
 
-    print 'number of total stars (objects) found', df0.shape[0]
-    df0=df0[(df0['CLASS_STAR']>0.80).values & (df0['FLAGS']<5).values]
+    print 'number of total stars (objects) found', df0.shape
+    df0=df0[(df0['CLASS_STAR']>0.8).values & (df0['FLAGS']<5).values]
     print 'number of stars (CLASS_STAR>0.8 & FLAGS<5) using in Sextractor', len(np.array(df0.index))
     hdu[2].data=hdu[2].data[np.array(df0.index)]
     hdu.writeto(os.path.join('new_fits', field + '_new.ldac.fits'), overwrite=True)
@@ -460,7 +459,7 @@ if __name__ == "__main__":
     if len(sys.argv)>3:
         flattype = str(sys.argv[3])
     else:
-        flattype='domeflat'
+        flattype = 'domeflat'
 
     if not os.path.exists(outdir):
         os.makedirs(os.path.join(outdir))

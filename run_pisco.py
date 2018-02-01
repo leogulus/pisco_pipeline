@@ -30,7 +30,7 @@ def list_file_name(dir, name, end=0):
 
 
 dir='data2/'
-dir='ut170624/'
+dir='ut171212/'
 # dir='ut170624/'
 # dir='ut171209/'
 
@@ -79,11 +79,20 @@ if __name__ == "__main__":
     #             ,,\
     #             ,\
     #             ]
+    # DIDN't WORK: 'CHIPS0116-1136' (cCHIPS0116-1136_A_44_i get a wrong wcs solution),
+    # 'CHIPS0118-1430' [A] one get a wrong wcs solution
+    # 'CHIPS2317-1443' one [A] and one [B] get a wrong wcs solution
+    # Already DONE
+    # 'CHIPS0003-2521','CHIPS0012-1628','CHIPS0015-1513','CHIPS0018-1840','CHIPS0050-1412',\
+                # 'CHIPS0106-1149','CHIPS0106-2358','CHIPS0107-1310','CHIPS2333-2407','CHIPS2340-2302','CHIPS2349-2352','CHIPS2357-1125'
+    # UT171212
+    all_fields=['CHIPS0118-1430','CHIPS2317-1443']
 
     # 32 Field087
 
     # Not done
     # 40 Field103
+
     print len(all_fields)
     for i, field in enumerate(all_fields[:]):
         print i, field

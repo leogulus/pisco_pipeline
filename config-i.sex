@@ -13,8 +13,8 @@ PARAMETERS_NAME  pisco_pipeline/sex.param  # name of the file containing catalog
 
 DETECT_TYPE      CCD            # CCD (linear) or PHOTO (with gamma correction)
 DETECT_MINAREA   8              # min. # of pixels above threshold
-DETECT_THRESH    1.7            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-ANALYSIS_THRESH  1.7            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+DETECT_THRESH    1.5            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+ANALYSIS_THRESH  1.5            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
 
 FILTER           Y              # apply filter for detection (Y or N)?
 FILTER_NAME      pisco_pipeline/conv.txt    # name of the file containing the filter
@@ -35,7 +35,7 @@ PHOT_AUTOPARAMS  2.5, 3.5       # MAG_AUTO parameters: <Kron_fact>,<min_radius>
 PHOT_PETROPARAMS 2.0, 3.5       # MAG_PETRO parameters: <Petrosian_fact>,
                                 # <min_radius>
 
-SATUR_LEVEL      10000.0        # level (in ADUs) at which arises saturation
+SATUR_LEVEL      10000        # level (in ADUs) at which arises saturation (6500 vs 10000)
 SATUR_KEY        SATURATE       # keyword for saturation level (in ADUs)
 
 MAG_ZEROPOINT    0.0            # magnitude zero-point
