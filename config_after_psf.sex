@@ -7,7 +7,7 @@
 CATALOG_NAME     test.ldac.fits       # name of the output catalog
 CATALOG_TYPE     FITS_LDAC    # NONE,ASCII,ASCII_HEAD, ASCII_SKYCAT,
                                 # ASCII_VOTABLE, FITS_1.0 or FITS_LDAC
-PARAMETERS_NAME  pisco_pipeline/sex.param  # name of the file containing catalog contents
+PARAMETERS_NAME  pisco_pipeline/sex_after_psf.param  # name of the file containing catalog contents
 
 #------------------------------- Extraction ----------------------------------
 
@@ -35,14 +35,14 @@ PHOT_AUTOPARAMS  2.5, 3.5       # MAG_AUTO parameters: <Kron_fact>,<min_radius>
 PHOT_PETROPARAMS 2.0, 3.5       # MAG_PETRO parameters: <Petrosian_fact>,
                                 # <min_radius>
 
-SATUR_LEVEL      2000.0        # level (in ADUs) at which arises saturation
+SATUR_LEVEL      20000        # level (in ADUs) at which arises saturation (4000 vs 20000)
 SATUR_KEY        SATURATE       # keyword for saturation level (in ADUs)
 
 MAG_ZEROPOINT    0.0            # magnitude zero-point
 MAG_GAMMA        4.0            # gamma of emulsion (for photographic scans)
 GAIN             0.25            # detector gain in e-/ADU
 GAIN_KEY         GAIN           # keyword for detector gain in e-/ADU
-PIXEL_SCALE      0.2            # size of pixel in arcsec (0=use FITS WCS info)
+PIXEL_SCALE      0.12            # size of pixel in arcsec (0=use FITS WCS info)
 
 #------------------------- Star/Galaxy Separation ----------------------------
 
@@ -58,11 +58,11 @@ BACKPHOTO_TYPE   GLOBAL         # can be GLOBAL or LOCAL
 
 #------------------------------ Check Image ----------------------------------
 
-CHECKIMAGE_TYPE  APERTURES           # can be NONE, BACKGROUND, BACKGROUND_RMS,
+CHECKIMAGE_TYPE  APERTURES, SEGMENTATION           # can be NONE, BACKGROUND, BACKGROUND_RMS,
                                 # MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND,
                                 # FILTERED, OBJECTS, -OBJECTS, SEGMENTATION,
                                 # or APERTURES
-CHECKIMAGE_NAME  check.fits     # Filename for the check-image
+CHECKIMAGE_NAME  sextract_g.fits, segment_g.fits     # Filename for the check-image
 
 #--------------------- Memory (change with caution!) -------------------------
 

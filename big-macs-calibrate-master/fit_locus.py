@@ -221,7 +221,7 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
                 cols.append(pyfits.Column(name=column_name,format='1E',array=array))
 
             coldefs = pyfits.ColDefs(cols)
-            hdu_new = pyfits.new_table(coldefs)
+            hdu_new = pyfits.TableHDU.from_columns(coldefs)
 
             matchedStars = 0
 
@@ -232,7 +232,7 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
                         hdu_new.data.field(column_name)[match[i][0]] = catalogStars[column_name][i]
 
             ''' require at least five matched stars '''
-            if matchedStars > 3:
+            if matchedStars > 3:  #Champ require number of stars
                 matched = matchedStars
                 hdu = pyfits.PrimaryHDU()
                 hdulist = pyfits.HDUList([hdu,hdu_new])
@@ -670,6 +670,9 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
     print len(sdss_mags), len(SeqNr)
 
 
+
+
+
     ''' now calibrate using only bright u'-band stars '''
     if len(blue_input_info):
         #pylab.scatter(sdss_mags[:,1], sdss_mags[:,1] - sdss_mags[:,2])
@@ -895,8 +898,8 @@ def fit(table, input_info_unsorted, mag_locus,
         #print A_err.shape
         ''' only use stars with errors less than max_err '''
 
-        print 'here is A_band', A_band.shape
-        print '----'
+        # print 'here is A_band', A_band.shape
+        # print '----'
         print A_band
         if True:
             mask = A_err > max_err
@@ -906,12 +909,12 @@ def fit(table, input_info_unsorted, mag_locus,
         ''' make matrix specifying good values '''
 
         good = scipy.ones(A_band.shape)
-        print 'here is good', good.shape
+        # print 'here is good', good.shape
         good[abs(A_band) == 99] = 0
         good[abs(A_band) == 0] = 0
         good = good[:,0,:]
         good_bands_per_star = good.sum(axis=1) # sum all of the good bands for any given star
-        print 'here is good', good.shape
+        # print 'here is good', good.shape
 
         #print good_bands_per_star
 
@@ -955,7 +958,7 @@ def fit(table, input_info_unsorted, mag_locus,
         good = scipy.ones(A_band.shape)
         good[abs(A_band) == 99] = 0
         good[abs(A_band) == 0] = 0
-        print 'here is good2', good.shape
+        # print 'here is good2', good.shape
 
         global itr
         itr = 0
@@ -1270,13 +1273,18 @@ def fit(table, input_info_unsorted, mag_locus,
                         info_hold = filter(lambda x: x['HOLD_VARY'] == 'HOLD', input_info) #[0]['mag']
                         ''' calculate average color for actual and model locus '''
                         diff = A_band[:,0,i] - A_band[:,0,0]
-                        print good[:,0,i].shape, good[:,0,0].shape
+                        # print good[:,0,i].shape, good[:,0,0].shape
                         good_diff = good[:,0,i] + good[:,0,0]
-                        print diff.shape, good_diff.shape
-                        print good_diff
-                        print diff
+                        # print diff.shape, good_diff.shape
+                        # print good_diff
+                        # print diff
                         print scipy.sum(good[:,0,i]), 'number of good measurements in band'
-                        diff = diff[good_diff == 2]
+
+
+                        if len(diff[good_diff == 2]) == 0:
+                            diff = diff[good_diff >= 1]
+                        else:
+                            diff = diff[good_diff == 2]
 
                         print key, len(diff)
 
@@ -1336,6 +1344,7 @@ def fit(table, input_info_unsorted, mag_locus,
                 end_of_locus = end_of_locus[residuals < resid_thresh]
                 dist = dist[residuals < resid_thresh]
                 sdss_mags = sdss_mags[residuals < resid_thresh]
+                residuals = residuals[residuals < resid_thresh] #add residuals Champ 2/22/18
 
             else:
 

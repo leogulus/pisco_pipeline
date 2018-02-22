@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib
-import os, re
+import os
+import re
 import pandas as pd
 
 from astropy.io import fits
@@ -8,6 +9,8 @@ import subprocess
 import cosmics
 import shlex
 import sys
+
+import yaml
 
 import matplotlib.pyplot as plt
 #from pisco_lib import *
@@ -26,9 +29,11 @@ python pisco_pipeline/pisco_combine.py ut170619/ Field022 'twilight'
 python pisco_pipeline/pisco_combine.py ut171209/ CHIPS0152-5028 'twilight'
 """
 
-## add twilight option to use twilight flats
-## add look up seeing (FWHM) from the header
-## scamp_v2 for doing scamp for g-r and i-z simultaniously, instead of doing all 4 bands simultaniously
+# add twilight option to use twilight flats
+# add look up seeing (FWHM) from the header
+# scamp_v2 for doing scamp for g-r and i-z simultaniously, instead of doing all 4 bands simultaniously
+
+#edit 2/13/17: added yaml parameter to control all the sextractor parameters
 
 def filter_name(index):
     """
@@ -51,6 +56,7 @@ def filter_name(index):
         elif index == 7 or index == 8:
             filter_name = 'z'
     return [filter_name, dome_name]
+
 
 def list_file_name(dir, name, end=0):
     """
@@ -75,8 +81,9 @@ def list_file_name(dir, name, end=0):
         print 'Cannot find the files'
     return names
 
+
 def list_file_name_seeing(dir, name, end=0, startdir=0):
-    names=[]
+    names = []
     for root, dirs, files in os.walk(dir):
         for file in files:
             if file.startswith(name):
@@ -84,18 +91,19 @@ def list_file_name_seeing(dir, name, end=0, startdir=0):
                     if startdir == 0:
                         names.append(os.path.join(root, file))
                     else:
-                        if root.split('/')[-1][:2]==startdir:
+                        if root.split('/')[-1][:2] == startdir:
                             names.append(os.path.join(root, file))
                 else:
                     if file.endswith(end):
                         if startdir == 0:
                             names.append(os.path.join(root, file))
                         else:
-                            if root.split('/')[-1][:2]==startdir:
+                            if root.split('/')[-1][:2] == startdir:
                                 names.append(os.path.join(root, file))
     if len(names) == 0:
         print 'Cannot find the files'
     return names
+
 
 def open_files(names, index, bias=np.array([]), twilight=False):
     """
@@ -125,6 +133,7 @@ def open_files(names, index, bias=np.array([]), twilight=False):
     else:
         return np.mean(np.array(ch_bs), axis=0)
 
+
 def plot_one_chip(ax, data, vmin, vmax):
     """
     plot_one_chip: plot 2D array 'data' on 'ax' with Normalize scale 'vmin' and 'vmax'
@@ -144,6 +153,7 @@ def plot_one_chip(ax, data, vmin, vmax):
     ax.imshow(data, cmap=c_m, norm=norm)
     ax.axes.get_xaxis().set_visible(False)
     ax.axes.get_yaxis().set_visible(False)
+
 
 def save_fits(index, dir, outdir, fieldname, final_image, name):
     """
@@ -200,12 +210,12 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
     - img: 2D array of the output image after subtraction of bias and normalization with domeflat
     """
     print fieldname[0:5]
-    if fieldname[0:5]=='Field':
+    if fieldname[0:5] == 'Field':
         cut = -27
-    elif fieldname[0:5]=='CHIPS':
+    elif fieldname[0:5] == 'CHIPS':
         cut = -32
     else:
-        print 'there is no fieldname for that'+fieldname
+        print 'there is no fieldname for that' + fieldname
     print cut
     # if index == 3:
     #     edge=20
@@ -222,15 +232,16 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
     bias_names = list_file_name(dir, 'Bias_')
     # print bias_names
     if flat == 'domeflat':
-        domeflat_names = list_file_name(dir, "domeflat" + filter_name(index)[1])
+        domeflat_names = list_file_name(
+            dir, "domeflat" + filter_name(index)[1])
 
     if flat == 'twilight':
-        if fieldname[0:5]=='Field':
+        if fieldname[0:5] == 'Field':
             domeflat_names = list_file_name(dir, "twiflat_")
-        elif fieldname[0:5]=='CHIPS':
+        elif fieldname[0:5] == 'CHIPS':
             domeflat_names = list_file_name(dir, "twiflats_")
         else:
-            print 'there is no fieldname for twilight flat'+fieldname
+            print 'there is no fieldname for twilight flat' + fieldname
         # domeflat_names = list_file_name(dir, "twiflat_")
 
     bias = open_files(bias_names, index)
@@ -250,9 +261,9 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
 
     print ch1.shape, bias.shape, domeflat.shape
 
-
     img = (ch1 - bias) / domeflat
-    ch1, bias, domeflat, img = ch1[:,:cut], bias[:,:cut], domeflat[:,:cut], img[:,:cut]
+    ch1, bias, domeflat, img = ch1[:, :cut], bias[:,
+                                                  :cut], domeflat[:, :cut], img[:, :cut]
 
     if index % 2 == 0:
         return np.fliplr(ch1), np.fliplr(bias), np.fliplr(domeflat), np.fliplr(img)
@@ -284,18 +295,26 @@ def cosmic_reduce(dir, field, band):
         print os.path.join(dir, field + '_' + band + '.fits')
         # cutting the circular aperature of the image out to only have good pixels
         # in the center
+
+        with open("pisco_pipeline/params.yaml", 'r') as stream:
+            try:
+                param=yaml.load(stream)
+            except yaml.YAMLError as exc:
+                print(exc)
+        param['satur_level_%s'%band]
+
         if band == 'g':
-            array_c = array[20:-20, 350:2550] #350:2550
-            satlv = 2000.0
+            array_c = array[20:-20, 350:2550]  # [20:-20,350:2550]
+            satlv = param['satur_level_%s'%band] #2000.0
         elif band == 'r':
-            array_c = array[20:-20, 350:2550] #350:2550
-            satlv = 1250.0
+            array_c = array[30:-20, 400:2550]  # [20:-20,350:2550]
+            satlv = param['satur_level_%s'%band]# 1250.0
         elif band == 'i':
-            array_c = array[20:-20, 650:2800] #650:2800
-            satlv = 600.0
+            array_c = array[20:-40, 650:2800]  # [20:-20,650:2800]
+            satlv = param['satur_level_%s'%band] #600.0
         elif band == 'z':
-            array_c = array[20:-20, 650:2800] #650:2800
-            satlv = 1500.0
+            array_c = array[20:-20, 650:2750]  # [20:-20,650:2800]
+            satlv = param['satur_level_%s'%band] #1500.0
         c = cosmics.cosmicsimage(array_c, gain=4.0, readnoise=3.0, sigclip=2.5, sigfrac=0.5,
                                  objlim=5.0, satlevel=satlv, verbose=False)
         c.run(maxiter=5)
@@ -306,17 +325,24 @@ def cosmic_reduce(dir, field, band):
 
     # cosmics.tofits(os.path.join(dir, 'cosmics', 'n' + field +
     #                             '_' + band + '.fits'), array_c, header)
-
     # cosmics.tofits(os.path.join(dir, 'cosmics', 'm' + field +
     #                             '_' + band + '.fits'), c.mask, header)
 
 def ra_dec(name):
-    ra=float(name[6:8])*15+float(name[8:10])/4.
-    if name[10]=='-':
-        dec=float(name[10:13])-float(name[13:15])/60.
+    ra = float(name[6:8]) * 15 + float(name[8:10]) / 4.
+    if name[10] == '-':
+        dec = float(name[10:13]) - float(name[13:15]) / 60.
     else:
-        dec=float(name[10:13])+float(name[13:15])/60.
+        dec = float(name[10:13]) + float(name[13:15]) / 60.
     return ra, dec
+
+def ra_dec_field(field):
+    de = pd.read_csv(
+        '/Users/taweewat/Documents/xray_project/red_sequence/field_chips_all_obj.csv')
+    ra = de[de.name == field[1:9]].RA0.values[0]
+    dec = de[de.name == field[1:9]].DEC0.values[0]
+    return ra, dec
+
 
 def astrometry_solve(cosmicdir, field, outdir):
     """
@@ -336,14 +362,18 @@ def astrometry_solve(cosmicdir, field, outdir):
     # if not os.path.exists(outdir):
     #     os.makedirs(os.path.join(outdir))
     if not os.path.isfile(os.path.join(outdir, field + '.wcs')):
+        # print field
 
-        if field[0:6]=='cCHIPS':
-            ra, dec=ra_dec(field)
-            cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s --ra %s --dec %s --radius 2' \
-                % (os.path.join(cosmicdir, field + '.fits'), outdir, str(ra), str(dec))
+        if field[0:6] == 'cCHIPS':
+            ra, dec = ra_dec(field)
+            # cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s --ra %s --dec %s --radius 2' \
+            #     % (os.path.join(cosmicdir, field + '.fits'), outdir, str(ra), str(dec))
         else:
-            cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s' \
-                % (os.path.join(cosmicdir, field + '.fits'), outdir)
+            ra, dec = ra_dec_field(field)
+            # cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s' \
+            #     % (os.path.join(cosmicdir, field + '.fits'), outdir)
+        cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s --ra %s --dec %s --radius 2' \
+            % (os.path.join(cosmicdir, field + '.fits'), outdir, str(ra), str(dec))
         print cmd
         sub = subprocess.check_call(shlex.split(cmd))
         if sub == 0:
@@ -351,7 +381,7 @@ def astrometry_solve(cosmicdir, field, outdir):
         else:
             print 'solve-field does not work.'
     else:
-        print 'already have '+field+'.wcs'
+        print 'already have ' + field + '.wcs'
 
     orig = fits.open(os.path.join(cosmicdir, field + '.fits'))
     wcs_file = fits.open(os.path.join(outdir, field + '.wcs'))
@@ -372,48 +402,78 @@ def sextracting(field, band):
     - new_fits/..._new.ldac.fits: source catalogs of all the point source from Sextractor
     """
 
-    fieldname=field.split('_')[0][1:]+'_'+field.split('_')[1]
-    seeing=float(fits.open(list_file_name_seeing('/Users/taweewat/Documents/pisco_code/',fieldname,startdir='ut')[0])[0].header['FWHM1'])
+    with open("pisco_pipeline/params.yaml", 'r') as stream:
+        try:
+            param=yaml.load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
 
-    cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s -SEEING_FWHM %s' % \
-        (os.path.join('new_fits', field + '_new.fits'), band,
-         os.path.join('new_fits', field + '_new.ldac.fits'), str(seeing))
+    fieldname = field.split('_')[0][1:] + '_' + field.split('_')[1]
+    seeing = float(fits.open(list_file_name_seeing(
+        '/Users/taweewat/Documents/pisco_code/', fieldname, startdir='ut')[0])[0].header['FWHM1'])
+
+    cmd = 'sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -CHECKIMAGE_NAME %s -PIXEL_SCALE 0.2' % \
+        (os.path.join('new_fits', field + '_new.fits'),
+         os.path.join('new_fits', field + '_new.ldac.fits'), str(seeing), str(param['satur_level_%s'%band]), 'sextract_%s.fits'%band)
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-    cmd = 'sex %s -c pisco_pipeline/config-%s.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII -SEEING_FWHM %s' % \
-        (os.path.join('new_fits', field + '_new.fits'), band,
-         os.path.join('new_fits', 'tmp.cat'), str(seeing))
+    cmd = 'sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII -SEEING_FWHM %s -SATUR_LEVEL %s -CHECKIMAGE_NAME %s -PIXEL_SCALE 0.2' % \
+        (os.path.join('new_fits', field + '_new.fits'),
+         os.path.join('new_fits', 'tmp_%s.cat' % band), str(seeing), str(param['satur_level_%s'%band]), 'sextract_%s.fits'%band)
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-    name=['NUMBER','EXT_NUMBER','XWIN_WORLD','YWIN_WORLD','MAG_AUTO','MAGERR_AUTO','MAG_APER','MAGERR_APER','XWIN_IMAGE',\
-          'YWIN_IMAGE','ERRAWIN_IMAGE','ERRBWIN_IMAGE','ERRTHETAWIN_IMAGE','FLUX_AUTO','FLUXERR_AUTO','FLAGS',\
-          'FLUX RADIUS','CLASS_STAR','ALPHA_J2000','DELTA_J2000']
-    df0=pd.read_csv(os.path.join('new_fits', 'tmp.cat'), delim_whitespace=True, names=name)
-    hdu=fits.open(os.path.join('new_fits', field + '_new.ldac.fits'))
+    name = ['NUMBER', 'EXT_NUMBER', 'XWIN_WORLD', 'YWIN_WORLD', 'MAG_AUTO', 'MAGERR_AUTO', 'MAG_APER', 'MAGERR_APER', 'XWIN_IMAGE',
+            'YWIN_IMAGE', 'ERRAWIN_IMAGE', 'ERRBWIN_IMAGE', 'ERRTHETAWIN_IMAGE', 'FLUX_AUTO', 'FLUXERR_AUTO', 'FLAGS',
+            'FLUX RADIUS', 'CLASS_STAR', 'ALPHA_J2000', 'DELTA_J2000']
+    df0 = pd.read_csv(os.path.join('new_fits', 'tmp_%s.cat' %
+                                   band), delim_whitespace=True, names=name)
+    hdu = fits.open(os.path.join('new_fits', field + '_new.ldac.fits'))
 
-    print 'number of total stars (objects) found', df0.shape
-    df0=df0[(df0['CLASS_STAR']>0.8).values & (df0['FLAGS']<5).values]
+    print 'number of total stars (objects) found', df0.shape[0]
+    df0 = df0[(df0['FLUX_AUTO'] < float(param['flux_auto_%s'%band])).values]
+    # if band == 'g':
+    #     df0 = df0[(df0['FLUX_AUTO'] < 7e6).values]  # 7e6 3e5
+    # if band == 'r':
+    #     df0 = df0[(df0['FLUX_AUTO'] < 8e6).values]  # 8e6 3e5
+    # if band == 'i':
+    #     df0 = df0[(df0['FLUX_AUTO'] < 6e5).values]  # 6e5 3e5
+    # if band == 'z':
+    #     df0 = df0[(df0['FLUX_AUTO'] < 7e6).values]  # 7e6 3e5
+
+    # if band=='i':
+    #     df0=df0.sort_values(by='FLUX_AUTO').iloc[:int(df0.shape[0]/1.09)]
+    # if band=='r':
+    #     df0=df0.sort_values(by='FLUX_AUTO').iloc[:int(df0.shape[0]/1.08)]
+    # if band=='g':
+    #     df0=df0.sort_values(by='FLUX_AUTO').iloc[:int(df0.shape[0]/1.09)]
+    # if band=='z':
+    #     df0=df0.sort_values(by='FLUX_AUTO').iloc[:int(df0.shape[0]/1.09)]
+
+    # df0=df0[(df0['CLASS_STAR']>0.8).values & (df0['FLAGS']<5).values]
+
     print 'number of stars (CLASS_STAR>0.8 & FLAGS<5) using in Sextractor', len(np.array(df0.index))
-    hdu[2].data=hdu[2].data[np.array(df0.index)]
-    hdu.writeto(os.path.join('new_fits', field + '_new.ldac.fits'), overwrite=True)
+    hdu[2].data = hdu[2].data[np.array(df0.index)]
+    hdu.writeto(os.path.join('new_fits', field +
+                             '_new.ldac.fits'), overwrite=True)
 
     # if band == 'i':
-    #ploting PNG for viewing purpose
-    img=fits.open('segment_%s.fits'%band)[0].data
+    # ploting PNG for viewing purpose
+    img = fits.open('segment_%s.fits' % band)[0].data
     cmap = plt.cm.spring
     cmap.set_bad(color='black')
     img0 = np.ma.masked_where(img < 0.05, img)
-    plt.imshow(img0, origin='lower',cmap=cmap,interpolation='none')
-    plt.savefig('plt_bf_%s_%s.png'%(band,str(np.random.randint(100))))
+    plt.imshow(img0, origin='lower', cmap=cmap, interpolation='none')
+    plt.savefig('plt_bf_%s_%s.png' % (band, str(np.random.randint(100))))
 
-    img[~np.in1d(img, df0['NUMBER']).reshape(img.shape)]=0
+    img[~np.in1d(img, df0['NUMBER']).reshape(img.shape)] = 0
     img = np.ma.masked_where(img < 0.05, img)
-    plt.imshow(img, origin='lower',cmap=cmap,interpolation='none')
-    plt.savefig('plt_%s_%s.png'%(band,str(np.random.randint(100))))
+    plt.imshow(img, origin='lower', cmap=cmap, interpolation='none')
+    plt.savefig('plt_%s_%s.png' % (band, str(np.random.randint(100))))
 
-def scamp(fieldname):#, band):
+
+def scamp(fieldname):  # , band):
     """
     scamp: run SCAMP to align the coordinate better after Astrometry with distortions.
     (need to run all exposure and all filters at once to get the best performance)
@@ -424,11 +484,12 @@ def scamp(fieldname):#, band):
     - new_fits/...ldac.head: SCAMP output which includes new celestial coordinates for fixing WCS
     """
     cmd = 'scamp %s -c pisco_pipeline/config.scamp' % ' '.join(
-        list_file_name('new_fits', fieldname, end='_new.ldac.fits'))# % band))
+        list_file_name('new_fits', fieldname, end='_new.ldac.fits'))  # % band))
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-def scamp_v2(fieldname):#, band):
+
+def scamp_v2(fieldname):  # , band):
     """
     scamp: run SCAMP to align the coordinate better after Astrometry with distortions.
     (need to run all exposure and all filters at once to get the best performance)
@@ -439,14 +500,15 @@ def scamp_v2(fieldname):#, band):
     - new_fits/...ldac.head: SCAMP output which includes new celestial coordinates for fixing WCS
     """
     cmd = 'scamp %s -c pisco_pipeline/config.scamp' % ' '.join(
-        list_file_name('new_fits', fieldname, end='g_new.ldac.fits')+list_file_name('new_fits', fieldname, end='r_new.ldac.fits'))# % band))
+        list_file_name('new_fits', fieldname, end='g_new.ldac.fits') + list_file_name('new_fits', fieldname, end='r_new.ldac.fits'))  # % band))
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
     cmd = 'scamp %s -c pisco_pipeline/config.scamp' % ' '.join(
-        list_file_name('new_fits', fieldname, end='i_new.ldac.fits')+list_file_name('new_fits', fieldname, end='z_new.ldac.fits'))# % band))
+        list_file_name('new_fits', fieldname, end='i_new.ldac.fits') + list_file_name('new_fits', fieldname, end='z_new.ldac.fits'))  # % band))
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
+
 
 def swarp(fieldname):
     """
@@ -472,16 +534,18 @@ def swarp(fieldname):
 
 def save_rgb_image(field):
     cmd = "ds9 -zscale -rgb -red final/coadd_c%s_i.fits -green final/coadd_c%s_r.fits -blue final/coadd_c%s_g.fits -zoom to fit -saveimage final/img%s.eps -exit" % \
-        (field, field, field, field)  #-exit
+        (field, field, field, field)  # -exit
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
     print 'finished saving final/img%s.eps' % field
+
 
 def purge(dir, pattern):
     for f in os.listdir(dir):
         if re.search(pattern, f):
             print 'remove', f
             os.remove(os.path.join(dir, f))
+
 
 def run_bash_code(cmd):
     print cmd
@@ -504,7 +568,7 @@ if __name__ == "__main__":
     reducedir = 'reduced'
     cosmicdir = os.path.join(reducedir, 'cosmics')
 
-    if len(sys.argv)>3:
+    if len(sys.argv) > 3:
         flattype = str(sys.argv[3])
     else:
         flattype = 'domeflat'
@@ -526,8 +590,10 @@ if __name__ == "__main__":
     # Combine two amplifiers and bias and flat fielding
     for field in fields:
         for index in [1, 3, 5, 7]:
-            ch1, bias1, domeflat1, img1 = reduce_data(dir, index, field, flat=flattype)
-            ch2, bias2, domeflat2, img2 = reduce_data(dir, index + 1, field, flat=flattype)
+            ch1, bias1, domeflat1, img1 = reduce_data(
+                dir, index, field, flat=flattype)
+            ch2, bias2, domeflat2, img2 = reduce_data(
+                dir, index + 1, field, flat=flattype)
             final_image = np.concatenate((img1, img2), axis=1)
             save_fits(index, dir, reducedir, field, final_image,
                       "%s_%s.fits" % (field, filter_name(index)[0]))
@@ -555,7 +621,8 @@ if __name__ == "__main__":
         # (WCS) for each images
         astrometry_solve(cosmicdir, field, outdir)
         # Sextracting
-        band=field.split('_')[3]; print band
+        band = field.split('_')[3]
+        print band
         sextracting(field, band[0])
 
     if fieldname == 'Field173':
@@ -571,9 +638,6 @@ if __name__ == "__main__":
     # # save eps file for RGB image
     save_rgb_image(fieldname)
 
-    purge('reduced',"%s_.*\.fits" % fieldname)
-    purge('new_fits',"c%s_.*\.fits" % fieldname)
-    purge('wcs',"c%s_.*\.new" % fieldname)
-    #
-    # cmd = "rm -r new_fits/c%s_*_new.fits" % fieldname
-    # run_bash_code(cmd)
+    # purge('reduced', "%s_.*\.fits" % fieldname)
+    # purge('new_fits', "c%s_.*\.fits" % fieldname)
+    # purge('wcs', "c%s_.*\.new" % fieldname)

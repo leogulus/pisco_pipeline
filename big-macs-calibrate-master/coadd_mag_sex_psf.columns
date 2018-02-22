@@ -1,0 +1,4 @@
+MAG_PSF_g#$g$ MAGERR_PSF_g SDSS-g.res VARY
+MAG_PSF_r#$r$ MAGERR_PSF_r SDSS-r.res VARY
+MAG_PSF_i#$i$ MAGERR_PSF_i SDSS-i.res VARY
+MAG_PSF_z#$z$ MAGERR_PSF_z SDSS-z.res VARY

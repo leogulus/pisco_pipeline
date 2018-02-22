@@ -1,0 +1,9 @@
+satur_level_g: 20000
+satur_level_i: 10000
+satur_level_r: 20000
+satur_level_z: 20000
+
+flux_auto_g: 7e6 #3e5
+flux_auto_i: 8e6 #3e5
+flux_auto_r: 6e6 #3e5
+flux_auto_z: 7e6 #3e5

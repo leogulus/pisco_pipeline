@@ -27,16 +27,15 @@ def list_file_name(dir, name, end=0):
         print 'Cannot find the files'
     return names
 
-
-
-dir='data2/'
-dir='ut171212/'
-# dir='ut170624/'
-# dir='ut171209/'
+# dir='data2/'
+dir='ut171208/'  #09, 10
+# dir='ut170103/'
+# dir='ut171208/'
 
 if __name__ == "__main__":
+    # all_fields = list(set([i.split('_')[0].split('/')[-1] for i in list_file_name(dir, 'Field')]))
     all_fields = list(set([i.split('_')[0].split('/')[-1]
-                           for i in list_file_name(dir, 'Field')]))
+                           for i in list_file_name(dir, 'CHIPS')]))
     # all_fields = list(set([i.split('/')[-1].split('_')[1].split('.')[0] for i in list_file_name('slr_output/', 'ntotal_Field')]))
     # all_fields = ['Field234','Field237']#'Field037','Field042','Field045','Field084','Field058','Field059','Field060','Field074'] #'Field234','Field237'
     # all_fields = ['SDSS501','SDSS603','SDSS123','PKS1353','Field227','Field228','Field229','Field230']
@@ -44,10 +43,7 @@ if __name__ == "__main__":
 
     # Didn't work yet
     # UT171208: 'CHIPS0525-6938'
-    # UT171209: 'CHIPS0724-0715','CHIPS0745-0714'
-
-    # all_fields=[]
-
+    # UT171209: ,
     # UT171208
     # Already DONE
     # ['CHIPS0004-4736','CHIPS0005-2758','CHIPS0022-5140','CHIPS0024-6820','CHIPS0025-5427','CHIPS0040-2902',\
@@ -70,37 +66,56 @@ if __name__ == "__main__":
                 # 'CHIPS0920-2257','CHIPS0934-1721','CHIPS1011-0505','CHIPS1102-3031','CHIPS1141-1407','CHIPS1142-1422',\
                 # 'CHIPS1147-1252','CHIPS1205-2633','CHIPS2101-6132','CHIPS2127-4725','CHIPS2133-2815','CHIPS2139-3911',\
                 # 'CHIPS2141-3729','CHIPS2148-2735','CHIPS2148-3715','CHIPS2210-5508','CHIPS2211-3707','CHIPS2216-2803',\
-                # 'CHIPS2217-3034','CHIPS2218-2947','CHIPS2221-2804', 'CHIPS2246-2854','CHIPS2249-2808'
-
+                # 'CHIPS2217-3034','CHIPS2218-2947','CHIPS2221-2804', 'CHIPS2246-2854','CHIPS2249-2808','CHIPS0724-0715','CHIPS0745-0714'
     # Not Yet
     #
     # UT171209
-    # all_fields=[,\
+    # all_fields=['CHIPS2311-4718']
     #             ,,\
     #             ,\
     #             ]
-    # DIDN't WORK: 'CHIPS0116-1136' (cCHIPS0116-1136_A_44_i get a wrong wcs solution),
-    # 'CHIPS0118-1430' [A] one get a wrong wcs solution
-    # 'CHIPS2317-1443' one [A] and one [B] get a wrong wcs solution
     # Already DONE
     # 'CHIPS0003-2521','CHIPS0012-1628','CHIPS0015-1513','CHIPS0018-1840','CHIPS0050-1412',\
-                # 'CHIPS0106-1149','CHIPS0106-2358','CHIPS0107-1310','CHIPS2333-2407','CHIPS2340-2302','CHIPS2349-2352','CHIPS2357-1125'
+                # 'CHIPS0106-1149','CHIPS0106-2358','CHIPS0107-1310','CHIPS2333-2407','CHIPS2340-2302','CHIPS2349-2352','CHIPS2357-1125','CHIPS0118-1430','CHIPS2317-1443'
     # UT171212
-    all_fields=['CHIPS0118-1430','CHIPS2317-1443']
+    # CHIPS1011-0505: still some problems
+    #Still problem with CHIPS2357-1125
 
+# 'Field018','Field020','Field021','Field022',
+    # all_fields=['Field102']#,'Field025','Field026','Field027','Field028','Field029','Field030','Field033','Field034','Field036','Field037','Field038','Field039','Field040','Field042','Field044','Field045'] #
     # 32 Field087
-
     # Not done
     # 40 Field103
 
+    # UT171208 13 [CHIPS0025-5427], 22 [CHIPS0525-6938] (already), 49 [CHIPS0536-3401] (px=0.12)
+    # UT171209 10 [CHIPS0302-2758] (px=0.12), 17 [CHIPS1011-0505] (already), 20 [CHIPS0153-3143] (px=0.12)
+    # UT171212 0 [CHIPS0012-1628] (already), 4 [CHIPS0018-1840](px=0.12), 7 [CHIPS0132-1608] (already)
+
+    ## PHOTOMETRY
+    # no WCS solution: UT171208 22 CHIPS0525-6938
+    # Too Bright: UT171209 17 CHIPS1011-0505, UT171212 7 CHIPS0132-1608
+    # not enough star in 2MASS: UT171212 0 CHIPS0012-1628
+
+    all_fields=['CHIPS2223-3455']
     print len(all_fields)
     for i, field in enumerate(all_fields[:]):
         print i, field
         # cmd = "python pisco_pipeline/pisco_combine.py %s %s" % (dir,field)
-        cmd = "python pisco_pipeline/pisco_combine.py %s %s 'twilight'" % (dir,field)
         # cmd = "python pisco_pipeline/pisco_combine_dec08.py %s %s 'twilight'" % (dir,field)
+
+        # cmd = "python pisco_pipeline/pisco_combine.py %s %s 'twilight'" % (dir,field)
+        # print cmd
+        # sub = subprocess.check_call(shlex.split(cmd))
+
+        # if not os.path.isfile(os.path.join('slr_output', 'ntotal_%s.csv'%field)):
+        cmd = "python pisco_pipeline/pisco_photometry_v3.py %s" % field
         print cmd
         sub = subprocess.check_call(shlex.split(cmd))
+
+        # if not os.path.isfile(os.path.join('slr_output', 'all_psf_%s.csv'%field)):
+        #     cmd = "python pisco_pipeline/pisco_photometry_v4.py %s" % field  #CHIPS0005-2758
+        #     print cmd
+        #     sub = subprocess.check_call(shlex.split(cmd))
 
         # cmd = "rm wcs/*new"
         # print cmd
@@ -109,7 +124,6 @@ if __name__ == "__main__":
         # cmd = "rm new_fits/*new.fits"
         # print cmd
         # sub = subprocess.check_call(shlex.split(cmd))
-
 
         # if not os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
         # if os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):

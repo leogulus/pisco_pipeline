@@ -23,6 +23,8 @@ import sys
 #v3: instead of using photoutil, we reproject the frame and use dual mode of sextractor to get the magnitudes
 # also add seeing (FWHM) look up for sextractor
 
+#v4: MAG_PSF and MAG_MODEL new photometry calibration
+
 def list_file_name_seeing(dir, name, end=0, startdir=0):
     names=[]
     for root, dirs, files in os.walk(dir):
@@ -64,18 +66,31 @@ def aperature_proj(field,band):
     print 'projecting from %s band to i band the fits file '%band + outname
     fits.writeto(outname, im1, header, overwrite=True)
 
-    cmd='sex final/coadd_c%s_i.fits,final/proj_coadd_c%s_%s.fits -c pisco_pipeline/config_slr.sex -CATALOG_NAME %s/mag_i%s.fits -SEEING_FWHM %s -SATUR_LEVEL %s -PIXEL_SCALE 0.2 -CHECKIMAGE_NAME %s/check_%s.fits' % \
-    (field,field,band,slrdir,band,str(seeing),str(param['satur_level_%s'%band]),slrdir,band)
+    # cmd='sex final/coadd_c%s_i.fits,final/proj_coadd_c%s_%s.fits -c pisco_pipeline/config_slr.sex -CATALOG_NAME %s/mag_i%s.fits -SEEING_FWHM %s -SATUR_LEVEL %s -CHECKIMAGE_NAME %s/check_%s.fits' % \
+    # (field,field,band,slrdir,band,str(seeing),str(param['satur_level_%s'%band]),slrdir,band)
+    # print cmd
+    # sub=subprocess.check_call(shlex.split(cmd))
+
+    cmd='sex final/coadd_c%s_i.fits,final/proj_coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s'%\
+    (field,field,band,'sex_psf.param','psfex_output/psf_%s_%s.fits'%(field,band),str(seeing),str(param['satur_level_%s'%band]))
     print cmd
-    sub=subprocess.check_call(shlex.split(cmd))
+    sub = subprocess.check_call(shlex.split(cmd))
 
-    table=Table.read(slrdir+'/mag_i%s.fits'%band)
+    cmd='psfex %s -c pisco_pipeline/pisco.psfex' % ('psfex_output/psf_%s_%s.fits'%(field,band))
+    print cmd
+    sub = subprocess.check_call(shlex.split(cmd))
 
+    cmd='sex final/coadd_c%s_i.fits -c pisco_pipeline/config.sex -PSF_NAME %s -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PIXEL_SCALE 0.2 -CATALOG_TYPE FITS_1.0 -CHECKIMAGE_NAME %s'%\
+    (field,'psfex_output/psf_%s_%s.psf'%(field,band),'sex_after_psf.param','%s/a_psf_%s_%s.fits'%(slrdir,field,band),str(seeing),str(param['satur_level_%s'%band]),'check_%s_%s.fits'%(field,band))
+    print cmd
+    sub = subprocess.check_call(shlex.split(cmd))
+
+    table=Table.read('%s/a_psf_%s_%s.fits'%(slrdir,field,band))
     for name in table.colnames[1:]:
         table.rename_column(name, name + '_%s' % band)
     return table
 
-def slr_running(field, bigmacs="pisco_pipeline/big-macs-calibrate-master"):
+def slr_running(field, mode, bigmacs="pisco_pipeline/big-macs-calibrate-master"):
     """
     slr_running: running SLR script from github.com/patkel/big-macs-calibrate to get a calibrated magnitude
     INPUT:
@@ -88,11 +103,11 @@ def slr_running(field, bigmacs="pisco_pipeline/big-macs-calibrate-master"):
     infile = slrdir+'/star_%s.fits' % field
     pyfile = os.path.join(bigmacs, 'fit_locus.py')
     cmd = "python %s --file %s --columns %s --extension 1 --bootstrap 5 -l -r ALPHA_J2000_i -d DELTA_J2000_i -j --plot=PLOTS_%s" \
-        % (pyfile, infile, os.path.join(bigmacs, "coadd_mag_sex.columns"), field)
+        % (pyfile, infile, os.path.join(bigmacs, "coadd_mag_sex_%s.columns"%mode), field)
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-def update_color(fname, table):
+def update_color(fname, table, mode):
     """
     update_color: using the output from SLR, update to the correct magnitude
     INPUT:
@@ -109,14 +124,21 @@ def update_color(fname, table):
     ecorr = [float(x.split(' ')[3]) for x in content[5:-1]]
     print 'bands = ', band
 
-    table['MAG_' + band[0]] = table['MAG_AUTO_' + band[0]] + corr[0]
-    table['MAG_' + band[1]] = table['MAG_AUTO_' + band[1]] + corr[1]
-    table['MAG_' + band[2]] = table['MAG_AUTO_' + band[2]] + corr[2]
-    table['MAG_' + band[3]] = table['MAG_AUTO_' + band[3]] + corr[3]
-    table['MAGERR_' + band[0]] = table['MAGERR_AUTO_' + band[0]] + ecorr[0]
-    table['MAGERR_' + band[1]] = table['MAGERR_AUTO_' + band[1]] + ecorr[1]
-    table['MAGERR_' + band[2]] = table['MAGERR_AUTO_' + band[2]] + ecorr[2]
-    table['MAGERR_' + band[3]] = table['MAGERR_AUTO_' + band[3]] + ecorr[3]
+    if mode=='psf':
+        table['MAG_cPSF_' + band[0]] = table['MAG_PSF_' + band[0]] + corr[0]
+        table['MAG_cPSF_' + band[1]] = table['MAG_PSF_' + band[1]] + corr[1]
+        table['MAG_cPSF_' + band[2]] = table['MAG_PSF_' + band[2]] + corr[2]
+        table['MAG_cPSF_' + band[3]] = table['MAG_PSF_' + band[3]] + corr[3]
+    elif mode=='model':
+        table['MAG_cMODEL_' + band[0]] = table['MAG_MODEL_' + band[0]] + corr[0]
+        table['MAG_cMODEL_' + band[1]] = table['MAG_MODEL_' + band[1]] + corr[1]
+        table['MAG_cMODEL_' + band[2]] = table['MAG_MODEL_' + band[2]] + corr[2]
+        table['MAG_cMODEL_' + band[3]] = table['MAG_MODEL_' + band[3]] + corr[3]
+    elif mode=='auto':
+        table['MAG_cAUTO_' + band[0]] = table['MAG_AUTO_' + band[0]] + corr[0]
+        table['MAG_cAUTO_' + band[1]] = table['MAG_AUTO_' + band[1]] + corr[1]
+        table['MAG_cAUTO_' + band[2]] = table['MAG_AUTO_' + band[2]] + corr[2]
+        table['MAG_cAUTO_' + band[3]] = table['MAG_AUTO_' + band[3]] + corr[3]
     return table
 
 
@@ -148,19 +170,31 @@ if __name__ == "__main__":
     mag_iz=aperature_proj(field,'z')
 
     total=join(join(join(mag_ii,mag_ig,keys='NUMBER'), mag_ir,keys='NUMBER'),mag_iz,keys='NUMBER')
-    total2=total[['ALPHA_J2000_i','DELTA_J2000_i','MAG_AUTO_i','MAGERR_AUTO_i','MAG_AUTO_g','MAGERR_AUTO_g',\
-                  'MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z','MAGERR_AUTO_z','CLASS_STAR_i','CLASS_STAR_g',\
-                  'CLASS_STAR_r','CLASS_STAR_z','FLAGS_i','FLAGS_g','FLAGS_r','FLAGS_z']]
+    # print total[1]
+    total2=total[['ALPHA_J2000_i','DELTA_J2000_i',\
+                  'MAG_AUTO_i','MAGERR_AUTO_i','MAG_AUTO_g','MAGERR_AUTO_g','MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z','MAGERR_AUTO_z',\
+                  'CLASS_STAR_i','CLASS_STAR_g','CLASS_STAR_r','CLASS_STAR_z',\
+                  'FLAGS_g','FLAGS_r','FLAGS_i','FLAGS_z',\
+                  'MAG_PSF_g','MAG_PSF_r','MAG_PSF_i','MAG_PSF_z','MAGERR_PSF_g','MAGERR_PSF_r','MAGERR_PSF_i','MAGERR_PSF_z',\
+                  'MAG_MODEL_g','MAG_MODEL_r','MAG_MODEL_i','MAG_MODEL_z','MAGERR_MODEL_g','MAGERR_MODEL_r','MAGERR_MODEL_i','MAGERR_MODEL_z',\
+                  'SPREAD_MODEL_g','SPREAD_MODEL_r','SPREAD_MODEL_i','SPREAD_MODEL_z']]
+
+    # total3=total2[total2['CLASS_STAR_i'] > 0.90]
+    total2.write(slrdir+'/all_psf_%s.fits' % field, overwrite=True)
+
+    # slr_running(field,'auto')
+    # ntotal = update_color(slrdir+'/star_%s.fits.offsets.list'%field, total2, 'auto')
+    # ntotal.write(os.path.join(slrdir, 'n_auto_total_%s.csv' % field), overwrite=True)
+    #
+    # slr_running(field,'psf')
+    # ntotal = update_color(slrdir+'/star_%s.fits.offsets.list'%field, total2, 'psf')
+    # ntotal.write(os.path.join(slrdir, 'n_psf_total_%s.csv' % field), overwrite=True)
+    #
+    # slr_running(field,'model')
+    # ntotal = update_color(slrdir+'/star_%s.fits.offsets.list'%field, total2, 'model')
+    # ntotal.write(os.path.join(slrdir, 'n_model_total_%s.csv' % field), overwrite=True)
 
 
-    total2=total2[(total2['FLAGS_g']<4)&(total2['FLAGS_r']<4)&(total2['FLAGS_i']<4)&(total2['FLAGS_z']<4)]
-
-    total3=total2[total2['CLASS_STAR_i'] > 0.9]
-    total3.write(slrdir+'/star_%s.fits' % field, overwrite=True)
-
-    slr_running(field)
-    ntotal = update_color(slrdir+'/star_%s.fits.offsets.list'%field, total2)
-    ntotal.write(os.path.join(slrdir, 'ntotal_%s.csv' % field), overwrite=True)
 
     # cmd = 'mv star_%s.fits slr_output/' % field
     # try:
@@ -173,3 +207,7 @@ if __name__ == "__main__":
     #     sub = subprocess.check_call(shlex.split(cmd))
     # except (ValueError, RuntimeError, TypeError, NameError):
     #     pass
+
+
+# ALPHA_J2000
+# DELTA_J2000
