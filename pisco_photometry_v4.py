@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
@@ -55,8 +56,15 @@ def aperature_proj(field,band):
             print(exc)
 
     # see=float(fits.open(list_file_name_seeing('/Users/taweewat/Documents/pisco_code/',field,startdir='ut')[0])[0].header['FWHM1'])
-    seeing = float(fits.open(list_file_name_seeing(
-        '/Users/taweewat/Documents/pisco_code/', field, startdir='ut')[0])[0].header['FWHM1'])
+    # seeing = float(fits.open(list_file_name_seeing(
+    #     '/Users/taweewat/Documents/pisco_code/', field, startdir='ut')[0])[0].header['FWHM1'])
+    df_see=pd.read_csv('/Users/taweewat/Documents/red_sequence/total_chips_field_seeing.csv',index_col=0)
+    if field[0:5]=='CHIPS':
+        seeing = df_see[df_see.chips==field]['seeing_q25'].values[0] #np.min(df_see[df_see.chips==field][['seeing_025','seeing_gra_025']].values)
+        print seeing
+    elif (field[0:5]=='Field')|(field[0:3]=='PKS'):
+        seeing = df_see[df_see.name==field]['seeing_q25'].values[0] #np.min(df_see[df_see.name==field][['seeing_025','seeing_gra_025']].values)
+        print seeing
 
     slrdir = 'slr_output'
     to_be_projected = 'final/coadd_c%s_%s.fits'%(field,band)
@@ -71,8 +79,9 @@ def aperature_proj(field,band):
     # print cmd
     # sub=subprocess.check_call(shlex.split(cmd))
 
-    cmd='sex final/coadd_c%s_i.fits,final/proj_coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s'%\
-    (field,field,band,'sex_psf.param','psfex_output/psf_%s_%s.fits'%(field,band),str(seeing),str(param['satur_level_%s'%band]))
+    minarea=1.7
+    cmd='sex final/coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PHOT_APERTURES 15 -PIXEL_SCALE 0.22 -DETECT_MINAREA %s'%\
+    (field,band,'sex_psf.param','psfex_output/psf_%s_%s.fits'%(field,band),str(seeing),str(param['satur_level_%s'%band]),str(1.1/1.7*np.pi*(seeing/0.22)**2))
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
@@ -80,9 +89,8 @@ def aperature_proj(field,band):
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-    cmd='sex final/coadd_c%s_i.fits -c pisco_pipeline/config.sex -PSF_NAME %s -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PIXEL_SCALE 0.2 -CATALOG_TYPE FITS_1.0 -CHECKIMAGE_NAME %s'%\
-    (field,'psfex_output/psf_%s_%s.psf'%(field,band),'sex_after_psf.param','%s/a_psf_%s_%s.fits'%(slrdir,field,band),str(seeing),str(param['satur_level_%s'%band]),'check_%s_%s.fits'%(field,band))
-    print cmd
+    cmd='sex final/coadd_c%s_i.fits,final/proj_coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PSF_NAME %s -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PIXEL_SCALE 0.2 -CATALOG_TYPE FITS_1.0 -PHOT_APERTURES 15 -PIXEL_SCALE 0.22 -DETECT_MINAREA %s'%\
+    (field,field,band,'psfex_output/psf_%s_%s.psf'%(field,band),'sex_after_psf.param','%s/a_psf_%s_%s.fits'%(slrdir,field,band),str(seeing),str(param['satur_level_%s'%band]),str(1.1/1.7*np.pi*(seeing/0.22)**2))
     sub = subprocess.check_call(shlex.split(cmd))
 
     table=Table.read('%s/a_psf_%s_%s.fits'%(slrdir,field,band))
@@ -170,8 +178,7 @@ if __name__ == "__main__":
     mag_iz=aperature_proj(field,'z')
 
     total=join(join(join(mag_ii,mag_ig,keys='NUMBER'), mag_ir,keys='NUMBER'),mag_iz,keys='NUMBER')
-    # print total[1]
-    total2=total[['ALPHA_J2000_i','DELTA_J2000_i',\
+    total2=total[['NUMBER','ALPHA_J2000_i','DELTA_J2000_i',\
                   'MAG_AUTO_i','MAGERR_AUTO_i','MAG_AUTO_g','MAGERR_AUTO_g','MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z','MAGERR_AUTO_z',\
                   'CLASS_STAR_i','CLASS_STAR_g','CLASS_STAR_r','CLASS_STAR_z',\
                   'FLAGS_g','FLAGS_r','FLAGS_i','FLAGS_z',\
@@ -179,7 +186,8 @@ if __name__ == "__main__":
                   'MAG_MODEL_g','MAG_MODEL_r','MAG_MODEL_i','MAG_MODEL_z','MAGERR_MODEL_g','MAGERR_MODEL_r','MAGERR_MODEL_i','MAGERR_MODEL_z',\
                   'SPREAD_MODEL_g','SPREAD_MODEL_r','SPREAD_MODEL_i','SPREAD_MODEL_z']]
 
-    # total3=total2[total2['CLASS_STAR_i'] > 0.90]
+    # # total3=total2[total2['CLASS_STAR_i'] > 0.90]
+    total2.write(os.path.join(slrdir, 'total_psf_%s.csv' % field), overwrite=True)
     total2.write(slrdir+'/all_psf_%s.fits' % field, overwrite=True)
 
     # slr_running(field,'auto')

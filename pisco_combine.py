@@ -210,7 +210,7 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
     - img: 2D array of the output image after subtraction of bias and normalization with domeflat
     """
     print fieldname[0:5]
-    if fieldname[0:5] == 'Field':
+    if (fieldname[0:5] == 'Field') or (fieldname[0:3] == 'PKS'):
         cut = -27
     elif fieldname[0:5] == 'CHIPS':
         cut = -32
@@ -236,7 +236,7 @@ def reduce_data(dir, index, fieldname, flat='domeflat'):
             dir, "domeflat" + filter_name(index)[1])
 
     if flat == 'twilight':
-        if fieldname[0:5] == 'Field':
+        if (fieldname[0:5] == 'Field') or (fieldname[0:3] == 'PKS'):
             domeflat_names = list_file_name(dir, "twiflat_")
         elif fieldname[0:5] == 'CHIPS':
             domeflat_names = list_file_name(dir, "twiflats_")
@@ -338,7 +338,7 @@ def ra_dec(name):
 
 def ra_dec_field(field):
     de = pd.read_csv(
-        '/Users/taweewat/Documents/xray_project/red_sequence/field_chips_all_obj.csv')
+        '/Users/taweewat/Documents/red_sequence/field_chips_all_obj.csv')
     ra = de[de.name == field[1:9]].RA0.values[0]
     dec = de[de.name == field[1:9]].DEC0.values[0]
     return ra, dec
@@ -362,12 +362,15 @@ def astrometry_solve(cosmicdir, field, outdir):
     # if not os.path.exists(outdir):
     #     os.makedirs(os.path.join(outdir))
     if not os.path.isfile(os.path.join(outdir, field + '.wcs')):
-        # print field
+        print field, field[0:6]
 
         if field[0:6] == 'cCHIPS':
             ra, dec = ra_dec(field)
             # cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s --ra %s --dec %s --radius 2' \
             #     % (os.path.join(cosmicdir, field + '.fits'), outdir, str(ra), str(dec))
+        if field[0:4] == 'cPKS':
+            ra=209.0225
+            dec=-34.3530556
         else:
             ra, dec = ra_dec_field(field)
             # cmd = 'solve-field %s --downsample 2 --overwrite --scale-unit arcsecperpix --scale-low 0.08 --scale-high 0.3 --dir %s' \
@@ -412,15 +415,15 @@ def sextracting(field, band):
     seeing = float(fits.open(list_file_name_seeing(
         '/Users/taweewat/Documents/pisco_code/', fieldname, startdir='ut')[0])[0].header['FWHM1'])
 
-    cmd = 'sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -CHECKIMAGE_NAME %s -PIXEL_SCALE 0.2' % \
+    cmd = 'sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -CHECKIMAGE_NAME %s,%s -PIXEL_SCALE 0.2' % \
         (os.path.join('new_fits', field + '_new.fits'),
-         os.path.join('new_fits', field + '_new.ldac.fits'), str(seeing), str(param['satur_level_%s'%band]), 'sextract_%s.fits'%band)
+         os.path.join('new_fits', field + '_new.ldac.fits'), str(seeing), str(param['satur_level_%s'%band]),'check_%s.fits'%(band),'segment_%s.fits'%(band))
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
-    cmd = 'sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII -SEEING_FWHM %s -SATUR_LEVEL %s -CHECKIMAGE_NAME %s -PIXEL_SCALE 0.2' % \
+    cmd = 'sex %s -c pisco_pipeline/config.sex -CATALOG_NAME %s -CATALOG_TYPE ASCII -SEEING_FWHM %s -SATUR_LEVEL %s -CHECKIMAGE_NAME %s,%s -PIXEL_SCALE 0.2' % \
         (os.path.join('new_fits', field + '_new.fits'),
-         os.path.join('new_fits', 'tmp_%s.cat' % band), str(seeing), str(param['satur_level_%s'%band]), 'sextract_%s.fits'%band)
+         os.path.join('new_fits', 'tmp_%s.cat' % band), str(seeing), str(param['satur_level_%s'%band]),'check_%s.fits'%(band),'segment_%s.fits'%(band))
     print cmd
     sub = subprocess.check_call(shlex.split(cmd))
 
@@ -451,7 +454,7 @@ def sextracting(field, band):
     # if band=='z':
     #     df0=df0.sort_values(by='FLUX_AUTO').iloc[:int(df0.shape[0]/1.09)]
 
-    # df0=df0[(df0['CLASS_STAR']>0.8).values & (df0['FLAGS']<5).values]
+    df0=df0[(df0['FLAGS']<5).values]  #(df0['CLASS_STAR']>0.8).values &
 
     print 'number of stars (CLASS_STAR>0.8 & FLAGS<5) using in Sextractor', len(np.array(df0.index))
     hdu[2].data = hdu[2].data[np.array(df0.index)]
@@ -460,17 +463,17 @@ def sextracting(field, band):
 
     # if band == 'i':
     # ploting PNG for viewing purpose
-    img = fits.open('segment_%s.fits' % band)[0].data
-    cmap = plt.cm.spring
-    cmap.set_bad(color='black')
-    img0 = np.ma.masked_where(img < 0.05, img)
-    plt.imshow(img0, origin='lower', cmap=cmap, interpolation='none')
-    plt.savefig('plt_bf_%s_%s.png' % (band, str(np.random.randint(100))))
-
-    img[~np.in1d(img, df0['NUMBER']).reshape(img.shape)] = 0
-    img = np.ma.masked_where(img < 0.05, img)
-    plt.imshow(img, origin='lower', cmap=cmap, interpolation='none')
-    plt.savefig('plt_%s_%s.png' % (band, str(np.random.randint(100))))
+    # img = fits.open('segment_%s.fits' % band)[0].data
+    # cmap = plt.cm.spring
+    # cmap.set_bad(color='black')
+    # img0 = np.ma.masked_where(img < 0.05, img)
+    # plt.imshow(img0, origin='lower', cmap=cmap, interpolation='none')
+    # plt.savefig('plt_bf_%s_%s.png' % (band, str(np.random.randint(100))))
+    #
+    # img[~np.in1d(img, df0['NUMBER']).reshape(img.shape)] = 0
+    # img = np.ma.masked_where(img < 0.05, img)
+    # plt.imshow(img, origin='lower', cmap=cmap, interpolation='none')
+    # plt.savefig('plt_%s_%s.png' % (band, str(np.random.randint(100))))
 
 
 def scamp(fieldname):  # , band):
@@ -638,6 +641,6 @@ if __name__ == "__main__":
     # # save eps file for RGB image
     save_rgb_image(fieldname)
 
-    # purge('reduced', "%s_.*\.fits" % fieldname)
-    # purge('new_fits', "c%s_.*\.fits" % fieldname)
-    # purge('wcs', "c%s_.*\.new" % fieldname)
+    purge('reduced', "%s_.*\.fits" % fieldname)
+    purge('new_fits', "c%s_.*\.fits" % fieldname)
+    purge('wcs', "c%s_.*\.new" % fieldname)

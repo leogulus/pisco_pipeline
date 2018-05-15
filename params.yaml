@@ -1,9 +1,14 @@
 satur_level_g: 20000
-satur_level_i: 10000
+satur_level_i: 10000 #5000
 satur_level_r: 20000
 satur_level_z: 20000
 
+satur_level_field_g: 3000
+satur_level_field_i: 4000
+satur_level_field_r: 3000
+satur_level_field_z: 3000
+
 flux_auto_g: 7e6 #3e5
-flux_auto_i: 8e6 #3e5
+flux_auto_i: 1e6 #3e5 8e6
 flux_auto_r: 6e6 #3e5
 flux_auto_z: 7e6 #3e5

@@ -46,46 +46,51 @@ def make_images_jpeg(name, redshift):
     g_nonan = g.ravel()[~np.isnan(g.ravel())]
     gmean = np.mean(g_nonan[np.abs(g_nonan) < 150])
     gstd = np.std(g_nonan[np.abs(g_nonan) < 150])
-    g = (g - gmean) / gstd /4#* 2
+    g = (g - gmean) / gstd#* 2
+    gmin=(gmean-gstd)/gstd
 
     r = fits.open('test.fits')[0].data[1]
     r_nonan = r.ravel()[~np.isnan(r.ravel())]
     rmean = np.mean(r_nonan[np.abs(r_nonan) < 150])
     rstd = np.std(r_nonan[np.abs(r_nonan) < 150])
-    r = (r - rmean) / rstd /2#* 2
+    r = (r - rmean) / rstd#* 2
+    rmin=(rmean-rstd)/rstd
 
     i = fits.open('test.fits')[0].data[0]
     i_nonan = i.ravel()[~np.isnan(i.ravel())]
     imean = np.mean(i_nonan[np.abs(i_nonan) < 150])
     istd = np.std(i_nonan[np.abs(i_nonan) < 150])
-    i = (i - imean) / istd /2#* 2
+    i = (i - imean) / istd * 1.3
+    imin=(imean-istd)/istd
 
-    cmd = "rm test.fits"
-    print cmd
-    sub = subprocess.check_call(shlex.split(cmd))
+    cmd = "rm test.fits"; print cmd; sub = subprocess.check_call(shlex.split(cmd))
 
-    rgb_default = make_lupton_rgb(i, r, g, Q=7, stretch=4)
+    # rgb_default = make_lupton_rgb(i, r, g, Q=7, stretch=4)
+    rgb_default = make_lupton_rgb(i, r, g, Q=6, stretch=7, minimum=[imin,rmin,gmin])
 
-    fig, ax = plt.subplots(1, figsize=(10, 20))
+    fig, ax = plt.subplots(1, figsize=(20, 30))
     ax.imshow(rgb_default, origin='lower')
-    ax.plot([200, 328.57], [820, 820], color='white', lw=3)
-    ax.annotate('30"', xy=(200, 800 - 28), xycoords='data',
-                color='white', fontsize=15)
+    # ax.plot([200, 328.57], [820, 820], color='white', lw=3)
+    # ax.annotate('30"', xy=(200, 800 - 28), xycoords='data',
+    #             color='white', fontsize=15)
+    #
+    # if redshift == -1:
+    #     ax.annotate('no z', xy=(200, 800 + 33),
+    #                 xycoords='data', color='white', fontsize=14)
+    # else:
+    #     kpc = 30 * (1 / cosmo.arcsec_per_kpc_proper(redshift)).value
+    #     ax.annotate('z=%.2f: %.0f kpc' % (redshift, kpc), xy=(
+    #         200, 800 + 33), xycoords='data', color='white', fontsize=14);
 
-    if redshift == -1:
-        ax.annotate('no z', xy=(200, 800 + 33),
-                    xycoords='data', color='white', fontsize=14)
-    else:
-        kpc = 30 * (1 / cosmo.arcsec_per_kpc_proper(redshift)).value
-        ax.annotate('z=%.2f: %.0f kpc' % (redshift, kpc), xy=(
-            200, 800 + 33), xycoords='data', color='white', fontsize=14);
-
-    ax.axis([100,1570,730,1700])
+    # ax.axis([100,1570,730,1700])
+    ax.axis([0,1600,400,2100])
     ax.get_xaxis().set_visible(False)
     ax.get_yaxis().set_visible(False)
+    plt.axvline(800, c='lightgreen',ls='--')
+    plt.axhline(1250, c='lightgreen',ls='--')
     plt.tight_layout()
-    plt.savefig('/Users/taweewat/Documents/pisco_code/Chips_images/%s_img.jpeg' %
-                name, bbox_inches='tight')
+    plt.savefig('/Users/taweewat/Documents/pisco_code/Chips_images/large_%s_img_.jpeg' %
+                name, bbox_inches='tight')#,dpi='figure')
     return 0
 
 
@@ -114,7 +119,7 @@ if __name__ == "__main__":
         allnames = list_file_name(
             '/Users/taweewat/Documents/pisco_code/final/', 'coadd_cCHIPS', end='i.fits')
         base = pd.read_csv(
-            '/Users/taweewat/Documents/xray_project/red_sequence/chips_all_obj.csv', index_col=0)
+            '/Users/taweewat/Documents/red_sequence/chips_all_obj.csv', index_col=0)
     elif mode == 'field':
         allnames = list_file_name(
             '/Users/taweewat/Documents/pisco_code/final/', 'coadd_cField', end='i.fits')
@@ -155,8 +160,8 @@ if __name__ == "__main__":
         # sub = subprocess.check_call(shlex.split(cmd))
 
         ## make jpeg image from the python script with the scale size
-        if not os.path.isfile(os.path.join('Chips_images', '%s_img.jpeg'%name)):
-            print 'working on the the image %s_img.jpeg'%name
-            make_images_jpeg(name, redshift)
-        else:
-            make_images_jpeg(name, redshift)
+        if not os.path.isfile(os.path.join('Chips_images', 'large_%s_img_.jpeg'%name)):
+            print i, 'working on the the image large_%s_img_.jpeg'%name
+            a=make_images_jpeg(name, redshift)
+        # else:
+            # make_images_jpeg(name, redshift)

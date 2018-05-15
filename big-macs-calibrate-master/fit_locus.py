@@ -30,9 +30,6 @@ def fix_kpno():
 
     p.writeto('./EXAMPLES/kpno_fixed.fits')
 
-
-
-
 def join_cats(cs,outputfile):
     import pyfits
     tables = {}
@@ -66,7 +63,7 @@ def join_cats(cs,outputfile):
     hdulist[1].header.update('EXTNAME','STDTAB')
     import os
     os.system('rm ' + outputfile)
-    print outputfile
+    # print outputfile
     hdulist.writeto(outputfile)
 
 def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SDSS', sdssUnit=False):
@@ -232,7 +229,7 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
                         hdu_new.data.field(column_name)[match[i][0]] = catalogStars[column_name][i]
 
             ''' require at least five matched stars '''
-            if matchedStars > 3:  #Champ require number of stars
+            if matchedStars > 1:  #Champ require number of stars
                 matched = matchedStars
                 hdu = pyfits.PrimaryHDU()
                 hdulist = pyfits.HDUList([hdu,hdu_new])
@@ -641,7 +638,7 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
             mag['blue/red'] = 'BLUER/RESTRICTED'
             blue_input_info.append(mag)
 
-    print blue_input_info
+    print 'Blue Input Info', blue_input_info
 
     ''' designate which filter zeropoints to be held constant when matching bands '''
     zps_dict_all = {}
@@ -674,6 +671,7 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
 
 
     ''' now calibrate using only bright u'-band stars '''
+    # for PISCO, SDSS data, there is no blue_input_info. All waveband is sufficiently longer.
     if len(blue_input_info):
         #pylab.scatter(sdss_mags[:,1], sdss_mags[:,1] - sdss_mags[:,2])
         #pylab.show()
@@ -804,7 +802,8 @@ def fit(table, input_info_unsorted, mag_locus,
     pylab.rcParams.update(params_pylab)
     fig_size = [5,5]
     params_pylab = {'axes.labelsize' : 14,
-              'text.fontsize' : 14,
+              # 'text.fontsize' : 14,
+              'font.size' : 14,
               'legend.fontsize' : 12,
               'xtick.labelsize' : 10,
               'ytick.labelsize' : 10,
@@ -829,7 +828,7 @@ def fit(table, input_info_unsorted, mag_locus,
     for i in range(len(vary_input_info)):
         zps[vary_input_info[i]['mag']] = i
 
-    print zps
+    # print zps
 
     number_locus_points = len(mag_locus)
     number_all_stars = len(table.field(input_info[0]['mag']))
@@ -900,7 +899,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
         # print 'here is A_band', A_band.shape
         # print '----'
-        print A_band
+        # print A_band
         if True:
             mask = A_err > max_err
             mask[A_err > 1.5] = 1
@@ -1009,12 +1008,12 @@ def fit(table, input_info_unsorted, mag_locus,
                 dist = ds[scipy.arange(len(match_locus_index)),match_locus_index]
                 spectrum_normalization = mean[scipy.arange(len(match_locus_index)),match_locus_index]
 
-                print 'good', good.sum()
+                # print 'good', good.sum()
 
                 chi_squared_total = select_sum.sum()
                 data_points = select_good.sum()
-                print 'data points', data_points
-                print 'stars', len(select_good)
+                # print 'data points', data_points
+                # print 'stars', len(select_good)
                 degrees_of_freedom = data_points - (bands.shape[-1] - 1) - 2*len(select_good) - 1
 
                 ''' two fit parameters for each star: median and choice of closest locus point (I think) '''
@@ -1027,36 +1026,25 @@ def fit(table, input_info_unsorted, mag_locus,
 
                 stat_tot = chi_squared_total #select_diff.sum()
 
-                #print [a['mag'] for a in input_info], zps_hold.values(), ['%.6f' % a for a in pars.tolist()]
-                print 'ZPs', dict(zip([a['mag'] for a in input_info] ,([zps_hold[a['mag']] for a in hold_input_info] + ['%.6f' % a for a in list(pars)])))
-
                 #for a in [b['mag'] for b in input_info]:
                 #    if scipy.is_nan(a):
                 #        print
                 #        raise Exception
 
-
-                print 'CURRENT TASK:', iteration
-                print 'STARS:', len(bands)
-                #redchi = stat_tot / float(max(1,len(bands) - 1))
-                # degrees of freedom = datapoints - parameters - 1
-                print 'chi^2', '%.5f' % stat_tot,
-                print 'degrees of freedom', '%d' % degrees_of_freedom,
-                print 'red chi^2', '%.5f' % redchi
-                print 'iteration', itr
+                if itr % 100 == 0:
+                    print 'ZPs', dict(zip([a['mag'] for a in input_info] ,([zps_hold[a['mag']] for a in hold_input_info] + ['%.6f' % a for a in list(pars)])))
+                    print 'CURRENT TASK:', iteration
+                    print 'STARS:', len(bands)
+                    print 'chi^2', '%.5f' % stat_tot,
+                    print 'degrees of freedom', '%d' % degrees_of_freedom, # degrees of freedom = datapoints - parameters - 1
+                    print 'red chi^2', '%.5f' % redchi  # redchi = stat_tot / float(max(1,len(bands) - 1))
+                    print 'iteration', itr
                 if live_plot and iteration is 'full' and (itr % plot_iteration_increment == 0 or savefig is not None):
                     plot_progress(pars,stat_tot,savefig)
                 itr += 1
 
                 if residuals:
-                    #print end_of_locus_reject
                     end_of_locus = scipy.array([reduce(lambda x,y: x*y, [match_locus_index[i] != x for x in range(end_of_locus_reject)]) for i in range(len(match_locus_index))])
-                    print select_diff.shape
-                    print dist.shape
-                    print redchi.shape
-                    print end_of_locus.shape
-                    print len(bands)
-                    print sdss_mags.shape
                     return select_diff, dist, redchi, end_of_locus, len(bands), sdss_mags
                 else: return stat_tot
 
@@ -1121,7 +1109,7 @@ def fit(table, input_info_unsorted, mag_locus,
                     #print ind(c2_band1), ind(c2_band2)
                     #print c2_band1, c2_band2
 
-                    print c1_band1, c1_band2, c2_band1, c2_band2
+                    # print c1_band1, c1_band2, c2_band1, c2_band2
 
                     if ind(c1_band1) is not None and ind(c1_band2) is not None and ind(c2_band1) is not None and ind(c2_band2) is not None:
                         x_color = scipy.array(bands + zp_bands)[:,0,ind(c1_band1)] - scipy.array(bands + zp_bands)[:,0,ind(c1_band2)]
@@ -1200,7 +1188,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
                         if len(x_color):
                             pylab.scatter(x_color,y_color,color='#0066ff',s=4,marker='o', zorder=20)
-                            pylab.errorbar(x_color,y_color,xerr=x_err,yerr=y_err,marker=None,fmt=None,ecolor="#e8e8e8",ms=1, mew=1, zorder=1) #,mc='none')
+                            pylab.errorbar(x_color,y_color,xerr=x_err,yerr=y_err,marker=None,fmt='none',ecolor="#e8e8e8",ms=1, mew=1, zorder=1) #,mc='none') #marker=None,fmt=None
 
                             c1_locus = locus_matrix[0,:,ind(c1_band1)] - locus_matrix[0,:,ind(c1_band2)]
                             c2_locus = locus_matrix[0,:,ind(c2_band1)] - locus_matrix[0,:,ind(c2_band2)]
@@ -1234,7 +1222,7 @@ def fit(table, input_info_unsorted, mag_locus,
                                     print file
 
 
-                                    print pylab.rcParams['figure.figsize']
+                                    # print pylab.rcParams['figure.figsize']
                                     pylab.savefig(file)
 
 
@@ -1307,7 +1295,7 @@ def fit(table, input_info_unsorted, mag_locus,
                 else:
                     pinit = [results['full'][key] for key in [a['mag'] for a in vary_input_info]]
 
-            print pinit
+            # print pinit
 
             out = scipy.optimize.fmin(errfunc,pinit,maxiter=10000,maxfun=100000,ftol=0.00001,xtol=0.00001,args=())
             if iteration is 'full':
@@ -1316,8 +1304,8 @@ def fit(table, input_info_unsorted, mag_locus,
 
             #print 'starting'
 
-            print 'out=', out
-            print [zps_hold[a['mag']] for a in hold_input_info]
+            # print 'out=', out
+            # print [zps_hold[a['mag']] for a in hold_input_info]
 
             #[zps_hold[a['mag']] for a in hold_input_info] +
 
@@ -1348,7 +1336,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
             else:
 
-                resid_thresh = 6
+                resid_thresh = 10 #6
                 bands = bands[residuals < resid_thresh]
                 bands_err = bands_err[residuals < resid_thresh]
                 locus_matrix = locus_matrix[residuals < resid_thresh]
@@ -1405,7 +1393,7 @@ def fit(table, input_info_unsorted, mag_locus,
                 pinit = out
                 outliers = 'outliers removed'
 
-                if False:
+                if False:  #False
                     pinit = scipy.array(out) + scipy.array([random.random()*1.0 for p in pinit])
                     pinit = out
                     out = scipy.optimize.fmin(errfunc,pinit,maxiter=10000,args=())
@@ -1430,9 +1418,9 @@ def fit(table, input_info_unsorted, mag_locus,
     errors = {}
     bootstraps = {}
     #print 'BOOTSTRAPPING ERRORS:'
-    print input_info
 
-    print [a['mag'] for a in input_info]
+    # print input_info
+    # print [a['mag'] for a in input_info]
 
     for key in [a['mag'] for a in input_info]:
         l = []
@@ -1443,6 +1431,8 @@ def fit(table, input_info_unsorted, mag_locus,
                 l.append(results[r][key])
         #print key+':', scipy.std(l), 'mag'
 
+
+        print 'all the data:', l
         if len(l) > 1:
             errors[key] = '%.4f' % scipy.std(l)
         else: errors[key] = -99

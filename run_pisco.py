@@ -1,7 +1,9 @@
-import os
+import os, re
 import subprocess
 import shlex
 import sys
+
+from astropy.io import fits
 
 
 def list_file_name(dir, name, end=0):
@@ -28,14 +30,36 @@ def list_file_name(dir, name, end=0):
     return names
 
 # dir='data2/'
-dir='ut171208/'  #09, 10
-# dir='ut170103/'
-# dir='ut171208/'
+# dir='ut171208/'  #09, 12
+dir='ut170104/' #03
+# dir='ut170624/' #21, 24
 
 if __name__ == "__main__":
+
+    # all_fields = list(set([i.split('_')[0].split('/')[-1]
+    #                        for i in list_file_name(dir, 'CHIPS')]))
+
+    names=[]
+    # myReg=re.compile(r'(CHIPS\d{4}-\d{4})|(Field\d{3})')
+    # # print myReg
+    # for text in os.listdir(dir):
+    #     if myReg.search(text) != None:
+    #         names.append(myReg.search(text).group())
+    # all_fields=list(set(names))
+
+    home='/Users/taweewat/Documents/pisco_code/' #09, 171208
+    dirs=['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    names=[]
+    myReg=re.compile(r'(CHIPS\d{4}[+-]\d{4})|(Field\d{3})')
+    for di in dirs:
+        dir=home+di
+        for text in os.listdir(dir):
+            if myReg.search(text) != None:
+                names.append(myReg.search(text).group())
+    all_fields=list(set(names))
+
     # all_fields = list(set([i.split('_')[0].split('/')[-1] for i in list_file_name(dir, 'Field')]))
-    all_fields = list(set([i.split('_')[0].split('/')[-1]
-                           for i in list_file_name(dir, 'CHIPS')]))
+
     # all_fields = list(set([i.split('/')[-1].split('_')[1].split('.')[0] for i in list_file_name('slr_output/', 'ntotal_Field')]))
     # all_fields = ['Field234','Field237']#'Field037','Field042','Field045','Field084','Field058','Field059','Field060','Field074'] #'Field234','Field237'
     # all_fields = ['SDSS501','SDSS603','SDSS123','PKS1353','Field227','Field228','Field229','Field230']
@@ -87,19 +111,28 @@ if __name__ == "__main__":
     # Not done
     # 40 Field103
 
-    # UT171208 13 [CHIPS0025-5427], 22 [CHIPS0525-6938] (already), 49 [CHIPS0536-3401] (px=0.12)
-    # UT171209 10 [CHIPS0302-2758] (px=0.12), 17 [CHIPS1011-0505] (already), 20 [CHIPS0153-3143] (px=0.12)
-    # UT171212 0 [CHIPS0012-1628] (already), 4 [CHIPS0018-1840](px=0.12), 7 [CHIPS0132-1608] (already)
+    # UT171208 13 [CHIPS0025-5427] (px=0.12), 22 [CHIPS0525-6938] (already: dense field), 49 [CHIPS0536-3401] (px=0.12)
+    # UT171209 10 [CHIPS0302-2758] (px=0.12), 17 [CHIPS1011-0505] (already,x), 20 [CHIPS0153-3143] (px=0.12)
+    # UT171212 0 [CHIPS0012-1628] (already), 4 [CHIPS0018-1840](px=0.12, bad corner), 7 [CHIPS0132-1608] (already: bright stars)
+    # UT170104 40 Field103,
 
     ## PHOTOMETRY
     # no WCS solution: UT171208 22 CHIPS0525-6938
     # Too Bright: UT171209 17 CHIPS1011-0505, UT171212 7 CHIPS0132-1608
     # not enough star in 2MASS: UT171212 0 CHIPS0012-1628
 
-    all_fields=['CHIPS2223-3455']
+    # Problem with PSF Photometry
+    # UT171208 2 CHIPS2303-6807, 6 CHIPS0449-2859, 7 CHIPS0150-3338, 8 CHIPS0342-3703, 13 CHIPS0025-5427, 14 CHIPS2243-3034, 17 CHIPS0409-2839, 21 CHIPS1009-3015, 33 CHIPS0449-3910, 48 CHIPS0127-4016, 49 CHIPS0536-3401
+
+    # all_fields=['Field026']#['Field179']
+    all_fields=['PKS1353']
     print len(all_fields)
-    for i, field in enumerate(all_fields[:]):
+    for i, field in enumerate(all_fields[:]):#all_fields[:22]+all_fields[23:]):
         print i, field
+
+        # if (field=='CHIPS0012-1628')|(field=='CHIPS0018-1840')|(field=='Field103')|(field=='CHIPS0525-6938')|(field=='Field089'):
+        #     continue
+
         # cmd = "python pisco_pipeline/pisco_combine.py %s %s" % (dir,field)
         # cmd = "python pisco_pipeline/pisco_combine_dec08.py %s %s 'twilight'" % (dir,field)
 
@@ -108,29 +141,44 @@ if __name__ == "__main__":
         # sub = subprocess.check_call(shlex.split(cmd))
 
         # if not os.path.isfile(os.path.join('slr_output', 'ntotal_%s.csv'%field)):
-        cmd = "python pisco_pipeline/pisco_photometry_v3.py %s" % field
-        print cmd
-        sub = subprocess.check_call(shlex.split(cmd))
+        # seeing = float(fits.open(list_file_name_seeing(
+        #     '/Users/taweewat/Documents/pisco_code/', field, startdir='ut')[0])[0].header['FWHM1'])
+        myReg=re.compile(r'%s_A_\d{1,4}\.fits'%field)
+        for root, dirs, files in os.walk('/Users/taweewat/Documents/pisco_code/'):
+            for file in files:
+                if myReg.search(file) != None:
+                    seeing=float(fits.open(root+'/'+myReg.search(file).group())[0].header['FWHM1'])
 
-        # if not os.path.isfile(os.path.join('slr_output', 'all_psf_%s.csv'%field)):
+        print seeing
+        # raw_input("Press Enter to continue...")
+
+
+        for band in ['i','g','r','z']:
+            cmd = "python pisco_pipeline/pisco_psf_extract.py %s %s" % (field,band)
+            print cmd
+            sub = subprocess.check_call(shlex.split(cmd))
+
+        # cmd = "python pisco_pipeline/pisco_photometry_v3.py %s" % field
+        # print cmd
+        # sub = subprocess.check_call(shlex.split(cmd))
+
+        # cmd = "python pisco_pipeline/pisco_star_galaxy_bleem.py %s" % field
+        # print cmd
+        # sub = subprocess.check_call(shlex.split(cmd))
+
+        # if not os.path.isfile(os.path.join('slr_output', 'all_psf_%s.fits'%field)):
         #     cmd = "python pisco_pipeline/pisco_photometry_v4.py %s" % field  #CHIPS0005-2758
         #     print cmd
         #     sub = subprocess.check_call(shlex.split(cmd))
 
-        # cmd = "rm wcs/*new"
-        # print cmd
-        # sub = subprocess.check_call(shlex.split(cmd))
-        #
-        # cmd = "rm new_fits/*new.fits"
-        # print cmd
-        # sub = subprocess.check_call(shlex.split(cmd))
-
         # if not os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
-        # if os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
-        #     cmd = "python pisco_pipeline/pisco_photometry.py %s" % field
+        # if os.path.exists(os.path.join('slr_output','all_psf_'+field+'.fits')):
+        # if not os.path.exists(os.path.join('slr_output','ntotal_psf_'+field+'.csv')):
+        #     cmd = "python pisco_pipeline/pisco_photometry_psf.py %s" % field
         #     print cmd
         #     sub = subprocess.check_call(shlex.split(cmd))
-        #
+
+
         # if os.path.exists(os.path.join('slr_output','ntotal_'+field+'.csv')):
         #     cmd = "python pisco_pipeline/pisco_redsequence.py %s" % field
         #     print cmd

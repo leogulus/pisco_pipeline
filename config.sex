@@ -12,15 +12,15 @@ PARAMETERS_NAME  pisco_pipeline/sex.param  # name of the file containing catalog
 #------------------------------- Extraction ----------------------------------
 
 DETECT_TYPE      CCD            # CCD (linear) or PHOTO (with gamma correction)
-DETECT_MINAREA   8              # min. # of pixels above threshold
-DETECT_THRESH    1.5            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-ANALYSIS_THRESH  1.5            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+DETECT_MINAREA   45              # min. # of pixels above threshold
+DETECT_THRESH    1.2            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+ANALYSIS_THRESH  1.2            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
 
 FILTER           Y              # apply filter for detection (Y or N)?
 FILTER_NAME      pisco_pipeline/conv.txt    # name of the file containing the filter
 
 DEBLEND_NTHRESH  32             # Number of deblending sub-thresholds
-DEBLEND_MINCONT  0.005          # Minimum contrast parameter for deblending
+DEBLEND_MINCONT  0.005          # Minimum contrast parameter for deblending (default 0.005)
 
 CLEAN            Y              # Clean spurious detections? (Y or N)?
 CLEAN_PARAM      1.0            # Cleaning efficiency
@@ -42,7 +42,7 @@ MAG_ZEROPOINT    0.0            # magnitude zero-point
 MAG_GAMMA        4.0            # gamma of emulsion (for photographic scans)
 GAIN             0.25            # detector gain in e-/ADU
 GAIN_KEY         GAIN           # keyword for detector gain in e-/ADU
-PIXEL_SCALE      0.2            # size of pixel in arcsec (0=use FITS WCS info)
+PIXEL_SCALE      0.22            # size of pixel in arcsec (0=use FITS WCS info)
 
 #------------------------- Star/Galaxy Separation ----------------------------
 
@@ -58,11 +58,11 @@ BACKPHOTO_TYPE   GLOBAL         # can be GLOBAL or LOCAL
 
 #------------------------------ Check Image ----------------------------------
 
-CHECKIMAGE_TYPE  APERTURES           # can be NONE, BACKGROUND, BACKGROUND_RMS,
+CHECKIMAGE_TYPE  APERTURES,SEGMENTATION           # can be NONE, BACKGROUND, BACKGROUND_RMS,
                                 # MINIBACKGROUND, MINIBACK_RMS, -BACKGROUND,
                                 # FILTERED, OBJECTS, -OBJECTS, SEGMENTATION,
                                 # or APERTURES
-CHECKIMAGE_NAME  check.fits     # Filename for the check-image
+CHECKIMAGE_NAME  check.fits,segment.fits     # Filename for the check-image
 
 #--------------------- Memory (change with caution!) -------------------------
 
