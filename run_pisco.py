@@ -29,12 +29,28 @@ def list_file_name(dir, name, end=0):
         print 'Cannot find the files'
     return names
 
+
+def find_fits_dir(field):
+    home = '/Users/taweewat/Documents/pisco_code/'
+    dirs = ['ut170103/', 'ut170104/', 'ut170619/', 'ut170621/',
+            'ut170624/', 'ut171208/', 'ut171209/', 'ut171212/']
+    myReg = re.compile(r'(%s_A).*' % field)
+    for di in dirs:
+        diri = home + di
+        for text in os.listdir(diri):
+            if myReg.search(text) != None:
+                filename = myReg.search(text).group()
+                allfilename = diri
+    return allfilename
+
 # dir='data2/'
 # dir='ut171208/'  #09, 12
-dir='ut170104/' #03
+# dir='ut170104/' #03
 # dir='ut170624/' #21, 24
 
 if __name__ == "__main__":
+    dirs = ['ut170103/', 'ut170104/', 'ut170619/', 'ut170621/',
+            'ut170624/', 'ut171208/', 'ut171209/', 'ut171212/']
 
     # all_fields = list(set([i.split('_')[0].split('/')[-1]
     #                        for i in list_file_name(dir, 'CHIPS')]))
@@ -48,7 +64,8 @@ if __name__ == "__main__":
     # all_fields=list(set(names))
 
     home='/Users/taweewat/Documents/pisco_code/' #09, 171208
-    dirs=['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    # ,'ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    dirs = ['ut171208/']
     names=[]
     myReg=re.compile(r'(CHIPS\d{4}[+-]\d{4})|(Field\d{3})')
     for di in dirs:
@@ -64,7 +81,7 @@ if __name__ == "__main__":
     # all_fields = ['Field234','Field237']#'Field037','Field042','Field045','Field084','Field058','Field059','Field060','Field074'] #'Field234','Field237'
     # all_fields = ['SDSS501','SDSS603','SDSS123','PKS1353','Field227','Field228','Field229','Field230']
     # all_fields = ['Field227','Field228','Field229','Field230']
-
+# 
     # Didn't work yet
     # UT171208: 'CHIPS0525-6938'
     # UT171209: ,
@@ -92,12 +109,8 @@ if __name__ == "__main__":
                 # 'CHIPS2141-3729','CHIPS2148-2735','CHIPS2148-3715','CHIPS2210-5508','CHIPS2211-3707','CHIPS2216-2803',\
                 # 'CHIPS2217-3034','CHIPS2218-2947','CHIPS2221-2804', 'CHIPS2246-2854','CHIPS2249-2808','CHIPS0724-0715','CHIPS0745-0714'
     # Not Yet
-    #
     # UT171209
     # all_fields=['CHIPS2311-4718']
-    #             ,,\
-    #             ,\
-    #             ]
     # Already DONE
     # 'CHIPS0003-2521','CHIPS0012-1628','CHIPS0015-1513','CHIPS0018-1840','CHIPS0050-1412',\
                 # 'CHIPS0106-1149','CHIPS0106-2358','CHIPS0107-1310','CHIPS2333-2407','CHIPS2340-2302','CHIPS2349-2352','CHIPS2357-1125','CHIPS0118-1430','CHIPS2317-1443'
@@ -124,8 +137,55 @@ if __name__ == "__main__":
     # Problem with PSF Photometry
     # UT171208 2 CHIPS2303-6807, 6 CHIPS0449-2859, 7 CHIPS0150-3338, 8 CHIPS0342-3703, 13 CHIPS0025-5427, 14 CHIPS2243-3034, 17 CHIPS0409-2839, 21 CHIPS1009-3015, 33 CHIPS0449-3910, 48 CHIPS0127-4016, 49 CHIPS0536-3401
 
-    # all_fields=['Field026']#['Field179']
-    all_fields=['PKS1353']
+    # all_fields=['Field026'] #['Field179']
+    # all_fields=['PKS1353'
+    # UT170103 = array(['Field143', 'Field091', 'Field135',
+    #                     'Field136', 'Field132', 'Field123', 'Field222',
+    #                     'Field206', 'Field202',
+    #                     'Field068', 'Field066', 'Field063', 'Field190',
+    #                     'Field197', 'Field194', 'Field211', 'Field213',
+    #                     'Field217', 'Field216', 'Field117', 'Field173',
+    #                     'Field174', 'Field187', 'Field109', 'Field154',
+    #                     'Field089', 'Field082', 'Field083']
+    
+    # UT170103
+    # not finished: 'Field143', 
+    # not enough star: 'Field089'
+    # bad calibration: 'Field082'
+    # finished: Field099, Field052, Field053, Field091, Field136, Field132, 'Field123', 'Field222', 'Field135'
+    #                     'Field206', 'Field202' Field068, Field066, Field063, Field190, Field197, Field211,
+    # Field213, 'Field217', 'Field216', Field117, Field173, Field174, Field187, 'Field109', 'Field154', 'Field083'
+    # working SLR:
+    # all_fields = ['Field083']
+    # 'Field044'
+    #UT170104
+    # all_fields = ['Field092', 'Field036', 'Field056', 'Field055', 'Field204', 'Field205', 'Field201',\
+    #               'Field198', 'Field219', 'Field218', 'Field071', 'Field073', 'Field075', 'Field182', 'Field151']
+
+    # UT170619
+    all_fields = ['Field039','Field225','Field226','Field022','Field020','Field021','Field025','Field048','Field124',\
+    'Field121','Field045','Field046','Field047','Field058','Field233','Field038','Field059','Field292',\
+    'Field018','Field210','Field212','Field115','Field072','Field074','Field077','Field076','Field269',\
+    'Field266','Field279','Field274','Field088','Field084','Field085','Field087']
+
+    # ['Field039','Field233','Field084','Field210','Field074']
+
+    # all_fields = ['Field137']
+    # ,Field048'Field039'] #['Field201'] #['Field166']
+    # CHIPS0423-3953o, CHIPS2325-4800o, CHIPS2251-3827o, CHIPS2307-4236o
+    # CHIPS0335-4715o, CHIPS2348-3831o, CHIPS0535-6602o
+    # Day8: CHIPS0018-1840, CHIPS2357-1125o, CHIPS2317-1443o, CHIPS0015-1513o, 
+    # CHIPS0106-2358o, CHIPS0118-1430o, CHIPS00501412, CHIPS0122-2646,
+    # 'CHIPS0003-2521o', 'CHIPS2349-2352o', 'CHIPS2340-2302o', 'CHIPS0106-1149o', 'CHIPS2333-2407o', 'CHIPS0132-1608o'
+    # Day7: 'CHIPS0148-2238', 'CHIPS1011-0505', 'CHIPS0303-2407',
+    # 'CHIPS0824-3020', 'CHIPS0936-3342', 'CHIPS1009-3015', 'CHIPS1036-3513','CHIPS0005-2758'
+    # Day6: all_fields=[u'CHIPS2223-3455',u'CHIPS2240-5231',u'CHIPS2245-4931',u'CHIPS2251-3827',u'CHIPS2333-6144',\
+    # u'CHIPS0049-4457',u'CHIPS0127-4016',u'CHIPS0133-4358',u'CHIPS0146-3648',u'CHIPS0146-3711',u'CHIPS0423-3953',\
+    # u'CHIPS0449-2859',u'CHIPS0532-3917',u'CHIPS0535-6602',u'CHIPS0824-3020',u'CHIPS0936-3342',u'CHIPS0957-7554',\
+    # u'CHIPS1009-3015',u'CHIPS1036-3513']
+    # all_fields = ['CHIPS0118-1430', 'CHIPS0003-2521']
+    # SDSS123, SDSS501, SDSS603  # Field237, Field234, Field103
+    all_fields = ['SDSS603']
     print len(all_fields)
     for i, field in enumerate(all_fields[:]):#all_fields[:22]+all_fields[23:]):
         print i, field
@@ -133,30 +193,32 @@ if __name__ == "__main__":
         # if (field=='CHIPS0012-1628')|(field=='CHIPS0018-1840')|(field=='Field103')|(field=='CHIPS0525-6938')|(field=='Field089'):
         #     continue
 
-        # cmd = "python pisco_pipeline/pisco_combine.py %s %s" % (dir,field)
+        file_dir = find_fits_dir(field)[-9:]
+        if (file_dir == 'ut170103/') | (file_dir == 'ut170104/'):
+            cmd = "python pisco_pipeline/pisco_combine.py %s %s" % (
+                file_dir, field)
+        else:
+            cmd = "python pisco_pipeline/pisco_combine.py %s %s 'twilight'" % (
+                file_dir, field)
+        print cmd
+        sub = subprocess.check_call(shlex.split(cmd))
+
         # cmd = "python pisco_pipeline/pisco_combine_dec08.py %s %s 'twilight'" % (dir,field)
 
-        # cmd = "python pisco_pipeline/pisco_combine.py %s %s 'twilight'" % (dir,field)
-        # print cmd
-        # sub = subprocess.check_call(shlex.split(cmd))
-
-        # if not os.path.isfile(os.path.join('slr_output', 'ntotal_%s.csv'%field)):
-        # seeing = float(fits.open(list_file_name_seeing(
-        #     '/Users/taweewat/Documents/pisco_code/', field, startdir='ut')[0])[0].header['FWHM1'])
-        myReg=re.compile(r'%s_A_\d{1,4}\.fits'%field)
-        for root, dirs, files in os.walk('/Users/taweewat/Documents/pisco_code/'):
-            for file in files:
-                if myReg.search(file) != None:
-                    seeing=float(fits.open(root+'/'+myReg.search(file).group())[0].header['FWHM1'])
-
-        print seeing
+        # myReg=re.compile(r'%s_A_\d{1,4}\.fits'%field)
+        # for root, dirs, files in os.walk('/Users/taweewat/Documents/pisco_code/'):
+        #     for file in files:
+        #         if myReg.search(file) != None:
+        #             seeing=float(fits.open(root+'/'+myReg.search(file).group())[0].header['FWHM1'])
+        # print seeing
         # raw_input("Press Enter to continue...")
 
 
-        for band in ['i','g','r','z']:
-            cmd = "python pisco_pipeline/pisco_psf_extract.py %s %s" % (field,band)
-            print cmd
-            sub = subprocess.check_call(shlex.split(cmd))
+        # for band in ['i','g','r','z']:
+        #     cmd = "python pisco_pipeline/pisco_psf_extract.py %s %s" % (field,band)
+        #     print cmd
+        #     sub = subprocess.check_call(shlex.split(cmd))
+
 
         # cmd = "python pisco_pipeline/pisco_photometry_v3.py %s" % field
         # print cmd

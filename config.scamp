@@ -59,7 +59,7 @@ CENTROIDERR_KEYS       ERRAWIN_IMAGE,ERRBWIN_IMAGE,ERRTHETAWIN_IMAGE
                                        # Cat. params for centroid err ellipse
 DISTORT_KEYS           XWIN_IMAGE,YWIN_IMAGE # Cat. parameters or FITS keywords
 DISTORT_GROUPS         1,1             # Polynom group for each context key
-DISTORT_DEGREES        4               # Polynom degree for each group
+DISTORT_DEGREES        1               # Polynom degree for each group #4
 
 #---------------------------- Photometric solution ----------------------------
 

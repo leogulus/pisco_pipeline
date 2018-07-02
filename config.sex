@@ -12,9 +12,9 @@ PARAMETERS_NAME  pisco_pipeline/sex.param  # name of the file containing catalog
 #------------------------------- Extraction ----------------------------------
 
 DETECT_TYPE      CCD            # CCD (linear) or PHOTO (with gamma correction)
-DETECT_MINAREA   45              # min. # of pixels above threshold
-DETECT_THRESH    1.2            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
-ANALYSIS_THRESH  1.2            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2
+DETECT_MINAREA   45              # min. # of pixels above threshold  (45)
+DETECT_THRESH    1.2            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2 (1.2)
+ANALYSIS_THRESH  1.2            # <sigmas> or <threshold>,<ZP> in mag.arcsec-2 (1.2)
 
 FILTER           Y              # apply filter for detection (Y or N)?
 FILTER_NAME      pisco_pipeline/conv.txt    # name of the file containing the filter
