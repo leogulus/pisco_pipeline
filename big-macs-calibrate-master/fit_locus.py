@@ -1349,6 +1349,7 @@ def fit(table, input_info_unsorted, mag_locus,
                 residuals = residuals[residuals < resid_thresh] #add residuals Champ 7/19/17
 
                 ''' first filter on distance '''
+                print 'dist:', dist
                 bands = bands[dist < 3]
                 bands_err = bands_err[dist < 3]
                 locus_matrix = locus_matrix[dist < 3]

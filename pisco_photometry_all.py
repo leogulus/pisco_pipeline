@@ -24,7 +24,10 @@ from PIL import Image as Image_PIL
 import ebvpy  #Galactic Reddening
 
 """
-Example: python pisco_pipeline/pisco_photometry_all.py PKS1353 psf allslr 2mass
+Example: 
+python pisco_pipeline/pisco_photometry_all.py PKS1353 psf allslr 2mass
+python pisco_pipeline/pisco_photometry_all.py PKS1353 psf allslr no2mass
+
 field: name of the fields
 mode: psf, auto, aper, hybrid
 allslr:
@@ -119,7 +122,7 @@ def pisco_photometry_v4(field):
         subprocess.check_call(shlex.split(cmd))
 
         table=Table.read('%s/a_psf_%s_%s.fits'%(slrdir,field,band))
-        for name in table.colnames[1:]:
+        for name in table.colnames[:]:
             table.rename_column(name, name + '_%s' % band)
         return table
 
@@ -140,24 +143,24 @@ def pisco_photometry_v4(field):
     cz=SkyCoord(ra=np.array(tablez['ALPHA_J2000_z'])*u.degree, dec=np.array(tablez['DELTA_J2000_z'])*u.degree)# print len(cz)
 
     idxn, d2dn, d3dn=cg.match_to_catalog_sky(ci)
-    Table_I=tablei[idxn][['ALPHA_J2000_i','DELTA_J2000_i','MAG_APER_i','MAGERR_APER_i','MAG_AUTO_i','MAGERR_AUTO_i','MAG_HYBRID_i','MAGERR_HYBRID_i',\
+    Table_I=tablei[idxn][['NUMBER_i','XWIN_IMAGE_i','YWIN_IMAGE_i','ALPHA_J2000_i','DELTA_J2000_i','MAG_APER_i','MAGERR_APER_i','MAG_AUTO_i','MAGERR_AUTO_i','MAG_HYBRID_i','MAGERR_HYBRID_i',\
                   'CLASS_STAR_i','FLAGS_i','MAG_PSF_i','MAGERR_PSF_i','MAG_MODEL_i','MAGERR_MODEL_i','SPREAD_MODEL_i']]
     Table_I.rename_column('ALPHA_J2000_i','ALPHA_J2000')
     Table_I.rename_column('DELTA_J2000_i','DELTA_J2000')
 
     idxn, d2dn, d3dn=cg.match_to_catalog_sky(cr)
-    Table_R=tabler[idxn][['ALPHA_J2000_r','DELTA_J2000_r','MAG_APER_r','MAGERR_APER_r','MAG_AUTO_r','MAGERR_AUTO_r','MAG_HYBRID_r','MAGERR_HYBRID_r',\
+    Table_R=tabler[idxn][['NUMBER_r','ALPHA_J2000_r','DELTA_J2000_r','MAG_APER_r','MAGERR_APER_r','MAG_AUTO_r','MAGERR_AUTO_r','MAG_HYBRID_r','MAGERR_HYBRID_r',\
                   'CLASS_STAR_r','FLAGS_r','MAG_PSF_r','MAGERR_PSF_r','MAG_MODEL_r','MAGERR_MODEL_r','SPREAD_MODEL_r']]
     Table_R.rename_column('ALPHA_J2000_r','ALPHA_J2000')
     Table_R.rename_column('DELTA_J2000_r','DELTA_J2000')
 
     idxn, d2dn, d3dn=cg.match_to_catalog_sky(cz)
-    Table_Z=tablez[idxn][['ALPHA_J2000_z','DELTA_J2000_z','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_z','MAGERR_AUTO_z','MAG_HYBRID_z','MAGERR_HYBRID_z',\
+    Table_Z=tablez[idxn][['NUMBER_z','ALPHA_J2000_z','DELTA_J2000_z','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_z','MAGERR_AUTO_z','MAG_HYBRID_z','MAGERR_HYBRID_z',\
                   'CLASS_STAR_z','FLAGS_z','MAG_PSF_z','MAGERR_PSF_z','MAG_MODEL_z','MAGERR_MODEL_z','SPREAD_MODEL_z']]
     Table_Z.rename_column('ALPHA_J2000_z','ALPHA_J2000')
     Table_Z.rename_column('DELTA_J2000_z','DELTA_J2000')
 
-    Table_G=tableg[['ALPHA_J2000_g','DELTA_J2000_g','MAG_APER_g','MAGERR_APER_g','MAG_AUTO_g','MAGERR_AUTO_g','MAG_HYBRID_g','MAGERR_HYBRID_g',\
+    Table_G=tableg[['NUMBER_g','ALPHA_J2000_g','DELTA_J2000_g','MAG_APER_g','MAGERR_APER_g','MAG_AUTO_g','MAGERR_AUTO_g','MAG_HYBRID_g','MAGERR_HYBRID_g',\
                   'CLASS_STAR_g','FLAGS_g','MAG_PSF_g','MAGERR_PSF_g','MAG_MODEL_g','MAGERR_MODEL_g','SPREAD_MODEL_g']]
     Table_G.rename_column('ALPHA_J2000_g','ALPHA_J2000')
     Table_G.rename_column('DELTA_J2000_g','DELTA_J2000')
@@ -170,7 +173,7 @@ def pisco_photometry_v4(field):
     # total=join(join(join(mag_ii,mag_ig,keys='NUMBER'), mag_ir,keys='NUMBER'),\
     #            mag_iz,keys='NUMBER')
     #'NUMBER'
-    total2=total[['ALPHA_J2000','DELTA_J2000',\
+    total2=total[['ALPHA_J2000','DELTA_J2000','NUMBER_i','NUMBER_r','NUMBER_g','XWIN_IMAGE_i','YWIN_IMAGE_i',\
                   'MAG_APER_i','MAGERR_APER_i','MAG_APER_g','MAGERR_APER_g','MAG_APER_r',\
                   'MAGERR_APER_r','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_i','MAGERR_AUTO_i',\
                   'MAG_AUTO_g','MAGERR_AUTO_g','MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z',\
@@ -272,37 +275,54 @@ def pisco_cut_star(field,c_a,c_b,c_d,c_delta):
     ax[1,0].set_xlabel('MAG APER i')
     ax[1,0].set_ylim(0.5,-2)
 
-    deltag=delta1[delta1<c_delta] #galaxy  0.1, 0.2 (0.005), 0.5 ()
+    # deltag=delta1[delta1<c_delta] #galaxy  0.1, 0.2 (0.005), 0.5 ()
     deltas=delta1[(delta1>=c_delta)&(delta1<3.)] #star
 
     def gauss(x, *p):
         A, mu, sigma = p
         return A*np.exp(-(x-mu)**2/(2.*sigma**2))
+    p0 = [1., 0., 0.1]
+    # def gauss(x, *p):
+    #     A, sigma = p
+    #     return A*np.exp(-(x-0)**2/(2.*sigma**2))
+    # p0 = [1., 0.1]
 
     #galaxy
-    hist, bin_edges = np.histogram(deltag,bins=np.arange(-1.2,0.5,0.02))#, density=True)
+    # hist, bin_edges = np.histogram(deltag,bins=np.arange(-1.2,0.5,0.02))
+    hist, bin_edges = np.histogram(delta1,bins=np.arange(-1.2,0.5,0.02))
     bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
     ax[1,1].plot(bin_centres, hist, label='galaxies',linestyle='steps')
 
     #stars
-    hist, bin_edges = np.histogram(deltas,bins=np.arange(-1,0.5,0.02))
+    hist, bin_edges = np.histogram(deltas,bins=np.arange(-1,0.5,0.02)) #(0 vs -1,0.5,0.02)
+    # hist, bin_edges = np.histogram(delta1, bins=np.arange(c_delta, 0.5, 0.02))
     bin_centres = (bin_edges[:-1] + bin_edges[1:])/2
-    p0 = [1., 0., 0.1]
     coeff2, var_matrix = curve_fit(gauss, bin_centres, hist, p0=p0)
-    x=np.arange(min(bin_edges),max(bin_edges),0.02)
-    hist_fit2 = gauss(x, *coeff2)
     ax[1,1].plot(bin_centres, hist, label='stars',linestyle='steps')
+
+    # hist, bin_edges = np.histogram(delta1,bins=np.arange(-1.2,0.5,0.02)) #added for right gaussian fitting
+    # bin_centres = (bin_edges[:-1] + bin_edges[1:])/2  # added for right gaussian fitting
+    x=np.arange(-1.25,0.5,0.02)
+    # hist_fit2 = gauss(x, *coeff2)
+    hist_fit2 = gauss(x, *coeff2)
+    hist_fit3 = gauss(x, *coeff2)/np.max(gauss(x, *coeff2)) #added for right gaussian fitting
     ax[1,1].plot(x, hist_fit2, label='stars_fit')
+    ax[1,1].plot(x, hist_fit3, label='stars_fit_norm') #added for right gaussian fitting
+    ax[1,1].axvline(x[hist_fit3>star_cut][0],c='tab:pink',label='cut:%.3f'%x[hist_fit3>star_cut][0])  #added for right gaussian fitting
     ax[1,1].legend(loc='best')
     ax[1,1].set_xlabel('Delta')
     ax[1,1].set_ylabel('Histogram')
+
+    ax[0,2].axhline(x[hist_fit3>star_cut][0],c='tab:pink') #added for right gaussian fitting
+    ax[1,0].axhline(x[hist_fit3>star_cut][0],c='tab:pink') #added for right gaussian fitting
+    ax[1,2].axhline(star_cut, c='tab:red')  # added for right gaussian fitting
 
     maxi=np.max(gauss(delta,*coeff2))
     def prob_SG(delta,maxi,*coeff2):
         if delta>0.:
             return 0.
         elif delta<=0.:
-            return 1.-(gauss(delta,*coeff2)/maxi)
+            return 1. - (gauss(delta, *coeff2) / maxi)
 
     vprob_SG= np.vectorize(prob_SG)
     SG=1.-vprob_SG(delta1,maxi,*coeff2)
@@ -320,6 +340,10 @@ def pisco_cut_star(field,c_a,c_b,c_d,c_delta):
 def pisco_cut_frame(field):
     # df_i=Table(fits.open('/Users/taweewat/Documents/pisco_code/star_galaxy/'+
     #                      '%s_catalog.fits'%field)[1].data).to_pandas()
+
+    global star_cut
+    star_cut=0.95
+
     seeing=find_seeing_fits(field)
     true_seeing=find_seeing(field,'i')
 
@@ -344,8 +368,9 @@ def pisco_cut_frame(field):
         df_i_cut, df_i1 = pisco_cut_star(field,c_a,c_b,c_d,c_delta)
         if len_df_i1==len(df_i1):
             break
-    dff=df_i1[df_i1['SG']<0.1] #0.8
-    dff_star=df_i1[df_i1['SG']>0.1] #0.9 vs 0.2
+
+    dff=df_i1[df_i1['SG']<star_cut] #0.8
+    dff_star = df_i1[df_i1['SG'] > 0.90]  # 0.90 vs 0.10
 
     #After running pisco_photometry_v4.fits, but before running
     #pisco_photometry_psf_v4.fits, and then 19_pisco_tilt_resequence.ipynb
@@ -396,9 +421,11 @@ def pisco_photometry_psf_v4(field, mode='psf', mode2mass='', slr=True):  #mode2m
         OUTPUT:
         - a new table with added columns with name MAG_g,...,MAGERR_g,...
         """
+        print fname
         with open(fname) as f:
             content = f.readlines()
         content = [x.strip() for x in content]
+        # print content
         if len(content)==8:
             red_content=content[4:]
         elif len(content)==10:    
@@ -431,7 +458,7 @@ def pisco_photometry_psf_v4(field, mode='psf', mode2mass='', slr=True):  #mode2m
 
     slrdir = 'slr_output'
     total3=Table.from_pandas(pd.read_csv("/Users/taweewat/Documents/pisco_code/slr_output/star_psf_total_%s.csv"%field))
-    total3=total3[['NUMBER','ALPHA_J2000_i','DELTA_J2000_i',\
+    total3=total3[['NUMBER','ALPHA_J2000_i','DELTA_J2000_i','XWIN_IMAGE_i','YWIN_IMAGE_i',\
                   'MAG_APER_i','MAGERR_APER_i','MAG_APER_g','MAGERR_APER_g','MAG_APER_r',\
                   'MAGERR_APER_r','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_i','MAGERR_AUTO_i',\
                   'MAG_AUTO_g','MAGERR_AUTO_g','MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z',\
@@ -537,7 +564,7 @@ def find_fits_dir(field):
         diri = home + di
         for text in os.listdir(diri):
             if myReg.search(text) != None:
-                filename = myReg.search(text).group()
+                # filename = myReg.search(text).group()
                 allfilename = diri
     return allfilename
 
@@ -659,14 +686,21 @@ def pisco_tilt_resequence(field, mode='psf', mode2mass=''):
                     dfi.loc[i,"w_gmr"]=sur_pro_prob(row['sep(Mpc)'],1.,k_NFW0)
 
     ns1,xs1=np.histogram(z_gmr,bins=np.arange(0.125,0.35,0.025),weights=w_gmr)
+    bin_cen1 = (xs1[:-1] + xs1[1:])/2
     ns2,xs2=np.histogram(z_rmi,bins=np.arange(0.325,0.7,0.025),weights=w_rmi)
-    z_total=np.append(xs1[:-1],xs2[:-1])
+    bin_cen2 = (xs2[:-1] + xs2[1:])/2
+    # z_total=np.append(xs1[:-1],xs2[:-1])
+    z_total = np.append(bin_cen1, bin_cen2)
     n_total=np.append(ns1,ns2)
     z_max=z_total[np.where(n_total==np.max(n_total))[0][0]]
-    # n_max=np.max(n_total)
+    # n_median=np.median(n_total)+0.0001
+    n_median = np.median(n_total[n_total != 0])
+    n_mean = np.mean(n_total)
 
-    hist2, bin_edges2 = np.histogram(z_gmr,bins=np.arange(0.125,0.35,0.025),weights=w_gmr)
-    hist, bin_edges = np.histogram(z_rmi,bins=np.arange(0.325,0.7,0.025),weights=w_rmi)
+    # signal=np.max(n_total)#/n_median
+    def v_func(z):
+        return (z**2+2*z)/(z**2+2*z+2)
+    signal=((np.max(n_total)-np.mean(n_total))*(v_func(z_max)*(4000))**2)/5.3e6 #normalization for r~1 at z~0.15
 
     cmap=matplotlib.cm.RdYlGn
 
@@ -705,21 +739,38 @@ def pisco_tilt_resequence(field, mode='psf', mode2mass=''):
     ax[2].set_title('z=0.15-0.325')#, icut:'+str(magi_cut_gmr))
     # plt.plot([corr_f(z) for z in df.z.values[:-25]],df.App_g[:-25]-df.App_r[:-25],'-')
 
-    ax[3].bar(bin_edges[:-1], hist, width = 0.025, color='#1f77b4')#, alpha=0.5)
-    ax[3].bar(bin_edges2[:-1], hist2, width = 0.025, color='#ff7f0e')#, alpha=0.5)
-    ax[3].axvline(z_max,ls='--',color='purple',label='z_max='+str(z_max))
-    ax[3].axvline(redshift,color='red',label='z: '+str(round(redshift,3)))
+    ax[3].bar(bin_cen2, ns2, width=0.025, color='#1f77b4')  # , alpha=0.5)
+    ax[3].bar(bin_cen1, ns1, width = 0.025, color='#ff7f0e')#, alpha=0.5)
+    ax[3].axvline(z_max,ls='--',color='purple',label='z_max:%.2f'%z_max)
+    ax[3].axvline(redshift,color='red',label='z:%.2f'%redshift)
+    ax[3].axhline(n_median,color='tab:green',label='median:%.2f'%n_median)
+    ax[3].axhline(n_mean,color='tab:red',label='mean:%.2f'%n_mean)
     ax[3].legend(loc='best')
     ax[3].set_xlabel('z')
     ax[3].set_xlim(0.1,0.7)
     ax[3].set_title('ebv:%.3f,ebv_g-r:-%.3f,ebv_r-i:-%.3f'%(ebv[0],ebv_g-ebv_r,ebv_r-ebv_i))
-
+    
     if np.max(n_total)<30:
         ax[3].set_ylim(0,30)
 
     plt.tight_layout(rect=[0, 0., 1, 0.98])
-    plt.savefig('/Users/taweewat/Documents/red_sequence/pisco_color_plots/redsq%s_%s_all_%.2f_%s_tilted.png' % ('',mode,np.max(n_total),field), dpi=120)
+    plt.savefig('/Users/taweewat/Documents/red_sequence/pisco_color_plots/redsq_rich%s_%s_all_%.2f_%s_tilted.png' % ('',mode,signal,field), dpi=120)
     plt.close(fig)
+
+    df_richness=pd.read_csv('/Users/taweewat/Documents/red_sequence/all_richness2.csv')
+    df_richness=df_richness.copy()
+    df_richness.loc[df_richness['name']==field,'Nmax']=np.max(n_total)
+    df_richness.loc[df_richness['name']==field,'Nbkg_mean']=np.mean(n_total)
+    df_richness.loc[df_richness['name'] == field, 'Nbkg_median'] = np.median(n_total)
+    df_richness.loc[df_richness['name']==field,'zmax']=z_max
+    # df_richness.loc[df_richness['name']==field,'distance[Mpc]']=z_max*(4000)
+    # df_richness.loc[df_richness['name']==field,'R']=(np.max(n_total)-np.mean(n_total))*(z_max*4000)**2
+    df_richness.to_csv('/Users/taweewat/Documents/red_sequence/all_richness2.csv',index=0)
+
+    dfi.to_csv("/Users/taweewat/Documents/pisco_code/slr_output/galaxy_psf_final_%s.csv"%field)
+
+    image_redshift(field,signal)
+
 
 def pisco_combine_imgs(fields, mode='psf', mode2mass=''):
     dir1='/Users/taweewat/Documents/red_sequence/pisco_color_plots/psf_est/'
@@ -727,7 +778,7 @@ def pisco_combine_imgs(fields, mode='psf', mode2mass=''):
     dir3='/Users/taweewat/Documents/red_sequence/pisco_color_plots/'
     dirout='/Users/taweewat/Documents/red_sequence/pisco_all/'
 
-    myReg = re.compile(r'(redsq_%s_all_.*%s.*png)' % (mode, field))
+    myReg = re.compile(r'(redsq_rich_%s_all_.*%s.*png)' % (mode, field))
     myReg2=re.compile(r'(\d{1,3}\.\d{1,3})')
     names=[]
     for text in os.listdir(dir3):
@@ -759,7 +810,7 @@ def pisco_combine_imgs(fields, mode='psf', mode2mass=''):
         index+=1
     # result.save(dirout + 'all_combine%s_%s_%s_%s.png' %
     #             (mode2mass, field, mode, myReg2.search(names[0]).group())) 
-    result.save(dirout + '%s_all_combine%s_%s_%s.png' %
+    result.save(dirout + 'all_combine_rich_%s_%s_%s_%s.png' %
                 (myReg2.search(names[0]).group(), mode2mass, field, mode)) 
 
 def purge(dir, pattern):
@@ -767,6 +818,58 @@ def purge(dir, pattern):
         if re.search(pattern, f):
             print 'remove', f
             os.remove(os.path.join(dir, f))
+
+def image_redshift(field,signal):
+    df_total=pd.read_csv('/Users/taweewat/Documents/pisco_code/slr_output/galaxy_psf_final_%s.csv'%field,index_col=0)
+    df_star=pd.read_csv('/Users/taweewat/Documents/pisco_code/slr_output/star_psf_total_%s.csv'%field,index_col=0)
+    df_star=df_star[df_star['SG']>0.95]
+    hdu=fits.open('/Users/taweewat/Documents/pisco_code/final/coadd_c%s_i.fits'%field)
+    img=hdu[0].data.astype(float)
+    img -= np.median(img)    
+    def redshift_f(row):
+        if not np.isnan(row['z_gmr']):
+            redshift=row['z_gmr']
+        if not np.isnan(row['z_rmi']):
+            redshift=row['z_rmi']
+        if np.isnan(row['z_rmi']) and np.isnan(row['z_gmr']):
+            redshift=0
+        return redshift
+    df_total['redshift_m']=df_total.apply(lambda row: redshift_f(row), axis=1)
+    def size_f(row):
+        if not np.isnan(row['w_gmr']):
+            size=row['w_gmr']
+        if not np.isnan(row['w_rmi']):
+            size=row['w_rmi']
+        if np.isnan(row['w_rmi']) and np.isnan(row['w_gmr']):
+            size=0
+        return size
+    df_total['size_m']=df_total.apply(lambda row: size_f(row), axis=1)
+
+    norm = matplotlib.colors.Normalize(vmin=0,vmax=100)
+    c_m = matplotlib.cm.Greys_r
+    s_m = matplotlib.cm.ScalarMappable(cmap=c_m, norm=norm)
+    s_m.set_array([])
+
+
+    fig, (a0, a1) = plt.subplots(1,2, figsize=(30,18), gridspec_kw = {'width_ratios':[0.8, 1]})
+    a0.imshow(img, cmap=c_m, norm=norm, origin='lower')
+    a0.scatter(df_star['XWIN_IMAGE_i'].values,df_star['YWIN_IMAGE_i'].values,s=100, marker='*', facecolors='none', edgecolors='yellow', label='star')
+    a0.scatter(df_total['XWIN_IMAGE_i'].values,df_total['YWIN_IMAGE_i'].values,s=100, facecolors='none', edgecolors='blue')
+    a0.set_xlim(0,1600)
+    a0.set_ylim(0, 2250)
+
+    a1.imshow(img, cmap=c_m, norm=norm, origin='lower')
+    a1.scatter(df_star['XWIN_IMAGE_i'].values,df_star['YWIN_IMAGE_i'].values,s=100, marker='*', facecolors='none', edgecolors='yellow', label='star')
+    axi=a1.scatter(df_total['XWIN_IMAGE_i'].values,df_total['YWIN_IMAGE_i'].values,s=100,c=df_total['redshift_m'].values,cmap='tab20b');fig.colorbar(axi)#df_total['size_m'].values*300
+    a1.set_xlim(0, 1600)
+    a1.set_ylim(0, 2250)
+    fig.tight_layout()
+    plt.savefig('/Users/taweewat/Documents/red_sequence/pisco_image_redshift/img_redshift_%.2f_%s.png' %
+                (signal,field), dpi=120)
+    plt.close(fig)
+
+
+
 
 if __name__ == "__main__":
     """
@@ -815,7 +918,7 @@ if __name__ == "__main__":
     all_fields=list(set(names))
     # print all_fields
 
-    exception=[]
+    exception = ['CHIPS0525-6938', 'Field234']
     #'CHIPS0411-5149','CHIPS1011-0505','CHIPS0222-4159','CHIPS0040-2902','CHIPS0025-5427',\
     #     'CHIPS2243-3034','CHIPS0012-1628','CHIPS0302-2758','CHIPS2251-3210','CHIPS0005-2758','CHIPS0132-1608',\
     #     'CHIPS2340-2302','CHIPS0304-3556','CHIPS0018-1840','CHIPS1141-1407','CHIPS1142-1422','CHIPS2311-4718',\
@@ -874,6 +977,10 @@ if __name__ == "__main__":
     # all_fields = ['CHIPS0118-1430', 'CHIPS0003-2521']
     # all_fields = ['Field074', 'Field044', 'Field136']
     # all_fields = ['SDSS123','SDSS501','SDSS603']
+    # all_fields = ['Field292']
+    # all_fields = ['CHIPS0012-1628']
+    # all_fields = ['CHIPS0005-2758','CHIPS1011-0505','Field094','Field159']
+    # all_fields = ['CHIPS2303-6807']
     notgoflag=True
     for index, field in enumerate(all_fields[:]):
         print field, '%i/%i'%(index,len(all_fields))
@@ -881,7 +988,7 @@ if __name__ == "__main__":
         if field in exception:
             continue
 
-        if field == 'CHIPS0525-6938':
+        if field == 'Field084':
             notgoflag=False
             continue
         if notgoflag:
@@ -896,6 +1003,8 @@ if __name__ == "__main__":
               ,r'(redsq_%s_all_.*%s.*png)'%(mode,field))
         pisco_tilt_resequence(field, mode=mode, mode2mass=mode2mass)
         pisco_combine_imgs(field, mode=mode, mode2mass=mode2mass)
+
+        # image_redshift(field)
     
         purge('final', "proj_coadd_c%s_.*\.fits" % field)
         purge('.', "proto_psf_%s_.*\.fits" % field)
@@ -903,7 +1012,7 @@ if __name__ == "__main__":
         purge('.', "resi_psf_%s_.*\.fits" % field)
         purge('.', "snap_psf_%s_.*\.fits" % field)
         purge('.', "chi_psf_%s_.*\.fits" % field)
-        purge('psfex_output', "psf_%s_.*\.fits" % field)
-        purge('slr_output', "a_psf_%s_.*\.fits" % field)
+        # purge('psfex_output', "psf_%s_.*\.fits" % field)
+        # purge('slr_output', "a_psf_%s_.*\.fits" % field)
         purge('final', "coadd_c%s_sq_.*\.fits" % field)
         
