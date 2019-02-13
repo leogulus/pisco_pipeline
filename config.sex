@@ -20,7 +20,7 @@ FILTER           Y              # apply filter for detection (Y or N)?
 FILTER_NAME      pisco_pipeline/conv.txt    # name of the file containing the filter
 
 DEBLEND_NTHRESH  32             # Number of deblending sub-thresholds
-DEBLEND_MINCONT  0.005          # Minimum contrast parameter for deblending (default 0.005)
+DEBLEND_MINCONT  0.001          # Minimum contrast parameter for deblending (default 0.005)
 
 CLEAN            Y              # Clean spurious detections? (Y or N)?
 CLEAN_PARAM      1.0            # Cleaning efficiency

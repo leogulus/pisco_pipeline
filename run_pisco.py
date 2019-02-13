@@ -65,7 +65,8 @@ if __name__ == "__main__":
 
     home='/Users/taweewat/Documents/pisco_code/' #09, 171208
     # ,'ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
-    dirs = ['ut171208/']
+    # 1208, 1209, 1212, 0624, 0621, 0619, 0104
+    # dirs = ['ut170103/']
     names=[]
     myReg=re.compile(r'(CHIPS\d{4}[+-]\d{4})|(Field\d{3})')
     for di in dirs:
@@ -163,10 +164,10 @@ if __name__ == "__main__":
     #               'Field198', 'Field219', 'Field218', 'Field071', 'Field073', 'Field075', 'Field182', 'Field151']
 
     # UT170619
-    all_fields = ['Field039','Field225','Field226','Field022','Field020','Field021','Field025','Field048','Field124',\
-    'Field121','Field045','Field046','Field047','Field058','Field233','Field038','Field059','Field292',\
-    'Field018','Field210','Field212','Field115','Field072','Field074','Field077','Field076','Field269',\
-    'Field266','Field279','Field274','Field088','Field084','Field085','Field087']
+    # all_fields = ['Field039','Field225','Field226','Field022','Field020','Field021','Field025','Field048','Field124',\
+    # 'Field121','Field045','Field046','Field047','Field058','Field233','Field038','Field059','Field292',\
+    # 'Field018','Field210','Field212','Field115','Field072','Field074','Field077','Field076','Field269',\
+    # 'Field266','Field279','Field274','Field088','Field084','Field085','Field087']
 
     # ['Field039','Field233','Field084','Field210','Field074']
 
@@ -185,10 +186,11 @@ if __name__ == "__main__":
     # u'CHIPS1009-3015',u'CHIPS1036-3513']
     # all_fields = ['CHIPS0118-1430', 'CHIPS0003-2521']
     # SDSS123, SDSS501, SDSS603  # Field237, Field234, Field103
-    all_fields = ['SDSS603']
+    all_fields = ['Field179']
     print len(all_fields)
-    for i, field in enumerate(all_fields[:]):#all_fields[:22]+all_fields[23:]):
-        print i, field
+    all_fields_cut = all_fields[:]
+    for i, field in enumerate(all_fields_cut): # all_fields[:22]+all_fields[23:]):
+        print str(i) + '/' + str(len(all_fields_cut)), field
 
         # if (field=='CHIPS0012-1628')|(field=='CHIPS0018-1840')|(field=='Field103')|(field=='CHIPS0525-6938')|(field=='Field089'):
         #     continue

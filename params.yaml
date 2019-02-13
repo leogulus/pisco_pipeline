@@ -1,19 +1,68 @@
-satur_level_g: 53000 #20000 #45000(CHIPS2307-4236) #20000 #45000 (CHIPS0824-3020) #43000 (CHIPS0003-2521)
-satur_level_i: 6600 #10000 #6500(CHIPS2307-4236) #10000 #7000(CHIPS0824-3020) #6600 (CHIPS0003-2521)
-satur_level_r: 25000 #20000 #25000(CHIPS2307-4236) #20000 #25000 (CHIPS0003-2521)
-satur_level_z: 14800 #20000 #15500(CHIPS2307-4236) #20000 #14800 (CHIPS0003-2521)
+# satur_level before normalized flat images
+# satur_level_g: 53000 #20000 #45000(CHIPS2307-4236) #20000 #45000 (CHIPS0824-3020) #43000 (CHIPS0003-2521)
+# satur_level_i: 6600 #10000 #6500(CHIPS2307-4236) #10000 #7000(CHIPS0824-3020) #6600 (CHIPS0003-2521)
+# satur_level_r: 25000 #20000 #25000(CHIPS2307-4236) #20000 #25000 (CHIPS0003-2521)
+# satur_level_z: 14800 #20000 #15500(CHIPS2307-4236) #20000 #14800 (CHIPS0003-2521)
 
-satur_level_field_g: 4000 #3000
-satur_level_field_i: 5500 #5500(default) 4000 #4000
-satur_level_field_r: 3500 #3000
-satur_level_field_z: 4000 #3000
+# satur_level_field2_g: 2400 #3000 #for 'ut170619/','ut170621/','ut170624/'
+# satur_level_field2_i: 1600 #5500(default)
+# satur_level_field2_r: 3000 #3000
+# satur_level_field2_z: 5100 #3000
 
-satur_level_field2_g: 2400 #3000 #for 'ut170619/','ut170621/','ut170624/'
-satur_level_field2_i: 1600 #5500(default)
-satur_level_field2_r: 3000 #3000
-satur_level_field2_z: 5100 #3000
+#new satur_level after normalized flat images
+# satur_level_g: 5000 
+# satur_level_i: 4000 
+# satur_level_r: 6000 
+# satur_level_z: 6000 
 
-flux_auto_g: 7e6 #3e5 #7e6(default) #3e5
-flux_auto_i: 1e6 #5e5 #1e6(default) #3e5 8e6
-flux_auto_r: 6e6 #3e5 #6e6(default) #3e5
-flux_auto_z: 7e6 #3e5 #7e6(default) #3e5
+satur_level_g: 61000
+satur_level_i: 61000
+satur_level_r: 61000 
+satur_level_z: 61000 
+
+satur_level_field_g: 61000
+satur_level_field_i: 61000
+satur_level_field_r: 61000 
+satur_level_field_z: 61000 
+
+satur_level_field2_g: 61000
+satur_level_field2_i: 61000
+satur_level_field2_r: 61000 
+satur_level_field2_z: 61000 
+
+# satur_level before normalized flat images
+# satur_level_field_g: 4000 #3000
+# satur_level_field_i: 5500 #5500(default) 4000 #4000
+# satur_level_field_r: 3500 #3000
+# satur_level_field_z: 4000 #3000
+
+# #new satur_level after normalized flat images
+# satur_level_field2_g: 30000 #3000 #for 'ut170619/','ut170621/','ut170624/'
+# satur_level_field2_i: 6200 #5500(default)
+# satur_level_field2_r: 22000 #3000
+# satur_level_field2_z: 7200 #3000
+
+# satur_level before normalized flat images
+# flux_auto_g: 7e6 #3e5 #7e6(default) #3e5
+# flux_auto_i: 1e6 #5e5 #1e6(default) #3e5 8e6
+# flux_auto_r: 6e6 #3e5 #6e6(default) #3e5
+# flux_auto_z: 7e6 #3e5 #7e6(default) #3e5
+
+#new satur_level after normalized flat images
+flux_auto_g: 1e7 #3e5 #7e6(default) #3e5
+flux_auto_i: 1e7 #5e5 #1e6(default) #3e5 8e6 
+flux_auto_r: 1e7 #3e5 #6e6(default) #3e5
+flux_auto_z: 1e7 #3e5 #7e6(default) #3e5
+
+#for pisco_photometry_all (after coadd)
+# satur_level_g_psf: 4000
+# satur_level_i_psf: 3000
+# satur_level_r_psf: 5000
+# satur_level_z_psf: 5000
+# satur_level_i_sq_psf: 9000000
+
+satur_level_g_psf: 62000
+satur_level_i_psf: 62000
+satur_level_r_psf: 62000 
+satur_level_z_psf: 62000 
+satur_level_i_sq_psf: 3721000000

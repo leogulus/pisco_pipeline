@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
-import sys, pyfits, os.path, pylab, string, re, time
+import sys, os.path, pylab, string, re, time
+from astropy.io import fits
 from glob import glob
 from copy import copy
 import scipy
@@ -10,7 +11,7 @@ c = 299792458e10
 
 ''' add SeqNr column to FITS table '''
 def add_SeqNr(file,extension=1):
-    p = pyfits.open(file)
+    p = fits.open(file)
     ext_str = True 
     try: 
         extension = int(extension)
@@ -21,11 +22,11 @@ def add_SeqNr(file,extension=1):
     for col in p[extension].columns:
         cols.append(col)
 
-    cols.append(pyfits.Column(name='SeqNr',format='L',array=range(len(p[extension].data))))
+    cols.append(fits.Column(name='SeqNr',format='L',array=range(len(p[extension].data))))
 
-    hdu = pyfits.PrimaryHDU()
-    hdulist = pyfits.HDUList([hdu])
-    tbhu = pyfits.new_table(cols)
+    hdu = fits.PrimaryHDU()
+    hdulist = fits.HDUList([hdu])
+    tbhu = fits.new_table(cols)
     hdulist.append(tbhu)
     if ext_str:
         hdulist[1].header.update('EXTNAME',extension)
@@ -82,8 +83,9 @@ def synth(p,spectra,filters,show=False):
 def cas_locus(fits=True):
 
     if fits:
-        import pyfits
-        locus_list_mag = pyfits.open(os.environ['BIGMACS'] + '/lociCAS.fits')['STDTAB']
+        # import pyfits
+        from astropy.io import fits
+        locus_list_mag = fits.open(os.environ['BIGMACS'] + '/lociCAS.fits')['STDTAB']
     else:
         import pickle
         f = open(os.environ['BIGMACS'] + 'lociCAS','r')

@@ -3,7 +3,9 @@
 if __name__ != '__main__':
     print 'importing modules'
     import os, re, string, pylab
-    import pyfits, random, scipy, commands, anydbm
+    import random, scipy, commands, anydbm
+    from astropy.io import fits
+    # import pyfits
     from scipy import linalg
     from scipy import optimize
     from glob import glob
@@ -17,7 +19,8 @@ itr = 0
 
 def fix_kpno():
 
-    p = pyfits.open('./EXAMPLES/kpno.fits')
+    # p = pyfits.open('./EXAMPLES/kpno.fits')
+    p = fits.open('./EXAMPLES/kpno.fits')
 
     for color in ['g','r','i','z']:
         mask = p[1].data['FLAGS_reg1_' + color] != 0
@@ -30,7 +33,8 @@ def fix_kpno():
     p.writeto('./EXAMPLES/kpno_fixed.fits')
 
 def join_cats(cs,outputfile):
-    import pyfits
+    # import pyfits
+    from astropy.io import fits
     tables = {}
     i = 0
     cols = []
@@ -42,7 +46,8 @@ def join_cats(cs,outputfile):
         else: TAB = 'STDTAB'
         i += 1
         print c
-        tables[str(i)] = pyfits.open(c)
+        # tables[str(i)] = pyfits.open(c)
+        tables[str(i)] = fits.open(c)
         for column in  tables[str(i)][TAB].columns:
             if column.name == 'SeqNr':
                 if not seqnr:
@@ -55,9 +60,12 @@ def join_cats(cs,outputfile):
 
     print cols
     print len(cols)
-    hdu = pyfits.PrimaryHDU()
-    hduSTDTAB = pyfits.new_table(cols)
-    hdulist = pyfits.HDUList([hdu])
+    # hdu = pyfits.PrimaryHDU()
+    # hduSTDTAB = pyfits.new_table(cols)
+    # hdulist = pyfits.HDUList([hdu])
+    hdu = fits.PrimaryHDU()
+    hduSTDTAB = fits.new_table(cols)
+    hdulist = fits.HDUList([hdu])
     hdulist.append(hduSTDTAB)
     hdulist[1].header.update('EXTNAME','STDTAB')
     import os
@@ -67,7 +75,9 @@ def join_cats(cs,outputfile):
 
 def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SDSS', sdssUnit=False):
 
-    import scipy, pyfits, math
+    import scipy, math
+    # import scipy, pyfits, math
+    from astropy.io import fits
 
     RA, DEC, RADIUS = get_catalog_parameters(inputcat, racol, deccol)
 
@@ -126,9 +136,9 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
         ''' NOTE 2MASS MAGS NOT CORRECTED FOR DUST -- SHOULD BE CORRECTED '''
 
         ''' select 2MASS stars with ph_qual=A for J band (includes a S/N cut) and use_src=1 '''
-        command = "wget \"http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query?outfmt=1&objstr=" + coordinate + "&spatial=Cone&radius=" + str(RADIUS) + "&radunits=arcmin&catalog=fp_psc&selcols=ph_qual,ra,dec,j_m,j_cmsig&constraints=ph_qual+like+%27A__%27+and+use_src%3D1\" -O "  + catalog
+        # command = "wget \"http://irsa.ipac.caltech.edu/cgi-bin/Gator/nph-query?outfmt=1&objstr=" + coordinate + "&spatial=Cone&radius=" + str(RADIUS) + "&radunits=arcmin&catalog=fp_psc&selcols=ph_qual,ra,dec,j_m,j_cmsig&constraints=ph_qual+like+%27A__%27+and+use_src%3D1\" -O "  + catalog
+        command = "wget 'https://irsa.ipac.caltech.edu/SCS?table=fp_psc&RA=%s&DEC=%s&SR=%s&format=ipac_table' -O %s --no-check-certificate" % (str(RA), str(DEC), str(RADIUS / 60.), catalog)
         print command
-
         import os
         os.system(command)
 
@@ -152,7 +162,10 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
 
             elif line[0] != '#' and line[0] != '|' and line[0] != '\\':
                 for key in saveKeys:
-                    value = float(line[keyDict[key]['indexStart']:keyDict[key]['indexEnd']])
+                    try:
+                        value = float(line[keyDict[key]['indexStart']:keyDict[key]['indexEnd']])
+                    except:
+                        value = 0.2  #edit: Champ null j_cmsig is set to 0.2
                     if key == 'j_m':
                         ''' correct J magnitude for extinction '''
                         value = value - EBV * 0.709
@@ -180,10 +193,13 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
 
             cols = []
             for column_name in returned_keys[2:]:
-                cols.append(pyfits.Column(name=column_name,format='1E',array=scipy.array(catalogStars[column_name])))
+                cols.append(fits.Column(name=column_name,format='1E',array=scipy.array(catalogStars[column_name])))
+                # cols.append(pyfits.Column(name=column_name,format='1E',array=scipy.array(catalogStars[column_name])))
 
-            coldefs = pyfits.ColDefs(cols)
-            hdu_new = pyfits.new_table(coldefs)
+            coldefs = fits.ColDefs(cols)
+            hdu_new = fits.new_table(coldefs)
+            # coldefs = pyfits.ColDefs(cols)
+            # hdu_new = pyfits.new_table(coldefs)
 
             returnCat = hdu_new
 
@@ -207,17 +223,21 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
             cols = []
             for column_name in necessary_columns: #inputcat.columns:
                 #cols.append(column)
-                cols.append(pyfits.Column(name=column_name,format='1E',array=inputcat.data.field(column_name)))
+                cols.append(fits.Column(name=column_name,format='1E',array=inputcat.data.field(column_name)))
+                # cols.append(pyfits.Column(name=column_name,format='1E',array=inputcat.data.field(column_name)))
 
 
             necessary_columns += saveKeys
 
             for column_name in saveKeys:
                 array = scipy.ones(rows) * -99
-                cols.append(pyfits.Column(name=column_name,format='1E',array=array))
+                # cols.append(pyfits.Column(name=column_name,format='1E',array=array))
+                cols.append(fits.Column(name=column_name,format='1E',array=array))
 
-            coldefs = pyfits.ColDefs(cols)
-            hdu_new = pyfits.TableHDU.from_columns(coldefs)
+            coldefs = fits.ColDefs(cols)
+            hdu_new = fits.TableHDU.from_columns(coldefs)
+            # coldefs = pyfits.ColDefs(cols)
+            # hdu_new = pyfits.TableHDU.from_columns(coldefs)
 
             matchedStars = 0
 
@@ -228,10 +248,12 @@ def get_survey_stars(inputcat, racol, deccol, necessary_columns, EBV, survey='SD
                         hdu_new.data.field(column_name)[match[i][0]] = catalogStars[column_name][i]
 
             ''' require at least five matched stars '''
-            if matchedStars > 1:  #Champ require number of stars
+            if matchedStars > 1:  #edit:Champ require number of stars (num_good_star)
                 matched = matchedStars
-                hdu = pyfits.PrimaryHDU()
-                hdulist = pyfits.HDUList([hdu,hdu_new])
+                hdu = fits.PrimaryHDU()
+                hdulist = fits.HDUList([hdu,hdu_new])
+                # hdu = pyfits.PrimaryHDU()
+                # hdulist = pyfits.HDUList([hdu,hdu_new])
                 print len(match)
                 import os
                 os.system('rm merge.fits')
@@ -439,7 +461,8 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
     except: pass
 
     print 'trying to open file', file
-    fulltable = pyfits.open(file)[extension]
+    # fulltable = pyfits.open(file)[extension]
+    fulltable = fits.open(file)[extension]
 
     input_info = utilities.parse_columns(columns_description)
     necessary_columns = [racol, deccol] + [x['mag'] for x in input_info] + [x['mag_err'] for x in input_info]
@@ -555,10 +578,10 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
 
     print 'INPUT FILTERS:', [a['filter'] for a in input_info]
 
-    print input_info
+    # print input_info
     mag_locus = utilities.synthesize_expected_locus_for_observations(input_info)
 
-    print mag_locus
+    # print mag_locus
 
     if False:
         import pickle , pylab
@@ -618,10 +641,15 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
         cols = []
         for col in fulltable.columns:
             cols.append(col)
-        cols.append(pyfits.Column(name='SeqNr',format='J',array=scipy.arange(len(fulltable.data))))
-        hdu = pyfits.PrimaryHDU()
-        hdulist = pyfits.HDUList([hdu])
-        fulltable = pyfits.new_table(cols)
+        cols.append(fits.Column(name='SeqNr',format='J',array=scipy.arange(len(fulltable.data))))
+        hdu = fits.PrimaryHDU()
+        hdulist = fits.HDUList([hdu])
+        fulltable = fits.BinTableHDU.from_columns(cols)
+        # fulltable = fits.new_table(cols)
+        # cols.append(pyfits.Column(name='SeqNr',format='J',array=scipy.arange(len(fulltable.data))))
+        # hdu = pyfits.PrimaryHDU()
+        # hdulist = pyfits.HDUList([hdu])
+        # fulltable = pyfits.new_table(cols)
 
     table = fulltable.data
 
@@ -701,15 +729,13 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
             not_ms = scipy.array(not_ms)
 
         gmr = sdss_mags[:,1] - sdss_mags[:,2]
-        print gmr
+        # print gmr
         #table = table[SeqNr]
         table.field(blue_input_info[0]['mag'])[gmr > 0.5] = 99.
 
-        print table.field(blue_input_info[0]['mag'])
-        print SeqNr
-
-
-        print len(table)
+        # print table.field(blue_input_info[0]['mag'])
+        # print SeqNr
+        # print len(table)
 
         for i in range(len(red_input_info)):
             red_input_info[i]['HOLD_VARY'] = 'HOLD'
@@ -720,20 +746,20 @@ def run(file,columns_description,output_directory=None,plots_directory=None,exte
                 red_input_info[i]['ZP'] = 0.
                 red_input_info[i]['ZPERR'] = 0.
 
-            print zps_dict_all
-            print red_input_info[i]['mag'], red_input_info[i]['ZP']#, zps_dict_all[red_input_info[i]['mag']]
+            # print zps_dict_all
+            # print red_input_info[i]['mag'], red_input_info[i]['ZP']#, zps_dict_all[red_input_info[i]['mag']]
 
 
-        print red_input_info
+        # print red_input_info
 
         results, sdss_mags, SeqNr = fit(table, red_input_info + blue_input_info, mag_locus, min_err=min_err, end_of_locus_reject=end_of_locus_reject, plot_iteration_increment=plot_iteration_increment, bootstrap=True, bootstrap_num=bootstrap_num, plotdir=plots_directory, pre_zps=None,printall=True, number_of_plots=number_of_plots)
 
-        print results
+        # print results
 
         zps_dict_all, zps_dict_all_err, cal_type = update_zps(zps_dict_all,zps_dict_all_err,cal_type, results,'BLUER')
 
-        print results
-        print zps_dict_all
+        # print results
+        # print zps_dict_all
 
 
     output_string = ''
@@ -1320,7 +1346,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
             if fit_num == 0:
                 resid_thresh = 30
-                print residuals
+                # print residuals
                 bands = bands[residuals < resid_thresh]
                 bands_err = bands_err[residuals < resid_thresh]
                 locus_matrix = locus_matrix[residuals < resid_thresh]
@@ -1335,7 +1361,7 @@ def fit(table, input_info_unsorted, mag_locus,
 
             else:
 
-                resid_thresh = 10 #6
+                resid_thresh = 6 #6 #edit10/30: previously 10
                 bands = bands[residuals < resid_thresh]
                 bands_err = bands_err[residuals < resid_thresh]
                 locus_matrix = locus_matrix[residuals < resid_thresh]
@@ -1349,7 +1375,7 @@ def fit(table, input_info_unsorted, mag_locus,
                 residuals = residuals[residuals < resid_thresh] #add residuals Champ 7/19/17
 
                 ''' first filter on distance '''
-                print 'dist:', dist
+                # print 'dist:', dist
                 bands = bands[dist < 3]
                 bands_err = bands_err[dist < 3]
                 locus_matrix = locus_matrix[dist < 3]
@@ -1390,19 +1416,19 @@ def fit(table, input_info_unsorted, mag_locus,
                 print str(number_good_stars), 'STARS LEFT'
                 #print 'bands' , len(bands)
                 #print bands.shape, locus_matrix.shape
-                pinit = out
+                # pinit = out
                 outliers = 'outliers removed'
 
                 if False:  #False
                     pinit = scipy.array(out) + scipy.array([random.random()*1.0 for p in pinit])
-                    pinit = out
+                    # pinit = out
                     out = scipy.optimize.fmin(errfunc,pinit,maxiter=10000,args=())
                     residuals,dist,redchi,end_of_locus, num, sdss_mags  = errfunc(out,savefig=iteration+'_'+outliers+'.png',residuals=True)
-                    print out
+                    # print out
             else:
                 print 'NO OUTLYING STARS OR STARS MATCHING BLUE END OF LOCUS, PROCEEDING'
                 keep_fitting = False
-            print 'good end=', good.shape, locus_matrix.shape
+            # print 'good end=', good.shape, locus_matrix.shape
 
         results[iteration] = dict(zip([a['mag'] for a in input_info],([zps_hold[a['mag']] for a in hold_input_info] + out.tolist())))
         results['sdss_mags_' + iteration] = copy(sdss_mags)
@@ -1417,7 +1443,7 @@ def fit(table, input_info_unsorted, mag_locus,
     #print results
     errors = {}
     bootstraps = {}
-    #print 'BOOTSTRAPPING ERRORS:'
+    print 'BOOTSTRAPPING ERRORS:'
 
     # print input_info
     # print [a['mag'] for a in input_info]
@@ -1515,7 +1541,9 @@ if __name__ == '__main__':
 
     print 'importing libraries'
     import os, re, string, pylab
-    import pyfits, random, scipy, commands, anydbm
+    import random, scipy, commands, anydbm
+    # import pyfits, 
+    from astropy.io import fits
     from scipy import linalg
     from scipy import optimize
     from glob import glob
@@ -1524,5 +1552,7 @@ if __name__ == '__main__':
     print 'finished importing libraries'
 
     print options.liveplot
+
+    print 'colums:', options.columns
 
     run(options.file,options.columns,output_directory=options.output,plots_directory=options.plots,extension=options.extension,racol=options.racol,deccol=options.deccol,bootstrap_num=options.bootstrap,live_plot=options.liveplot, add2MASS=options.add2MASSJ, addSDSS=options.addSDSSgriz,number_of_plots=options.numberofplots, sdssUnit=options.sdssUnit)

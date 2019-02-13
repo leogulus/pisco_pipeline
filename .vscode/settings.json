@@ -1,2 +1,5 @@
 {
+    "python.linting.pylintEnabled": false,
+    "python.formatting.provider": "black",
+    "python.pythonPath": "/Users/taweewat/anaconda2/bin/python"
 }

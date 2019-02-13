@@ -1,4 +1,4 @@
-import os
+import os, re
 import subprocess
 import shlex
 import sys
@@ -13,6 +13,9 @@ from astropy.visualization import make_lupton_rgb
 
 import aplpy
 
+"""
+python pisco_pipeline/run_aplpy_rgb_pisco.py
+"""
 
 def list_file_name(dir, name, end=0):
     """
@@ -54,6 +57,7 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
         gmin=(gmean-gstd); print gmin
     elif (mode == 'pks') | (mode == 'sdss'):
         gmin=(gmean-gstd); print gmin
+    # gmax=(gmean+10*gstd); print gmax
     gmax=(gmean+20*gstd); print gmax  #20
 
     r=fits.open('test.fits')[0].data[1]
@@ -67,6 +71,7 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
         rmin=(rmean-rstd); print rmin
     elif (mode=='pks') | (mode=='sdss'):
         rmin=(rmean-rstd); print rmin
+    # rmax=(rmean+10*rstd); print rmax 
     rmax=(rmean+20*rstd); print rmax #20
 
     i=fits.open('test.fits')[0].data[0]
@@ -80,7 +85,9 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
         imin=(imean-istd); print imin
     elif (mode == 'pks') | (mode == 'sdss'):
         imin=(imean-istd); print imin
-    imax=(imean+12*istd); print imax #12, 8
+    # imax=(imean+6*istd); print imax
+    imax=(imean+20*istd); print imax  # 12, 8
+    
 
     aplpy.make_rgb_image('test.fits','rgb_image_arcsinh.png',\
                          stretch_r='log', stretch_g='log',stretch_b='log',\
@@ -103,14 +110,20 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
     img.tick_labels.set_yformat('ddmm')
     # img.add_grid()
     # img.grid.set_color('green')
-    img.add_scalebar(4/60.)
-    img.scalebar.set_label('4 arcmin')
+    # img.add_scalebar(1/60.)
+    img.add_scalebar(86.48 / 3600.)
+    # img.scalebar.set_length(86.48/3600.)
+    img.scalebar.set_label('300 kpc')
     img.scalebar.set_color('white')
     img.recenter(RA, DEC, width=0.067, height=0.067)
     # img.show_markers(RA, DEC, marker='x', s=150, lw=0.4, layer='markers', edgecolor='white', facecolor='white')
     # if mode=='field':
         # img.show_markers(RA_M, DEC_M, marker='P', s=90, lw=2, layer='markers2', edgecolor='red', facecolor='none')
     img.show_markers(RA_W, DEC_W, marker='o', s=150, lw=0.4, layer='markers3', edgecolor='white', facecolor='none')
+    img.set_theme('publication')
+    img.axis_labels.hide()
+    img.ticks.hide()
+    img.tick_labels.hide()
     # filename = 'Chips_images/aplpy6_%s_img.jpeg' % name
     img.save(filename, adjust_bbox=True, dpi=120)
 
@@ -153,6 +166,13 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
     return 0
 
 
+def purge(dir, pattern):
+    for f in os.listdir(dir):
+        if re.search(pattern, f):
+            print 'remove', f
+            os.remove(os.path.join(dir, f))
+
+
 # name='CHIPS0022-5140'
 
 # Problems
@@ -172,28 +192,20 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
 # Not: CHIPS0132-1608,
 if __name__ == "__main__":
 
-    mode = 'chips'
+    # mode = 'chips'
+    # mode = 'field'
 
-    if mode == 'chips':
-        allnames = list_file_name(
-            '/Users/taweewat/Documents/pisco_code/final/', 'coadd_cCHIPS', end='i.fits')
-        base = pd.read_csv(
-            '/Users/taweewat/Documents/red_sequence/chips_all_obj.csv', index_col=0)
-    elif mode == 'field':
-        allnames = list_file_name(
-            '/Users/taweewat/Documents/pisco_code/final/', 'coadd_cField', end='i.fits')
-        base = pd.read_csv('/Users/taweewat/Dropbox/Documents/MIT/Observation/2017_1/all_objs.csv')
+    # if mode == 'chips':
+    #     allnames = list_file_name(
+    #         '/Users/taweewat/Documents/pisco_code/final/', 'coadd_cCHIPS', end='i.fits')
+    #     base = pd.read_csv(
+    #         '/Users/taweewat/Documents/red_sequence/chips_all_obj.csv', index_col=0)
+    # elif mode == 'field':
+    #     allnames = list_file_name(
+    #         '/Users/taweewat/Documents/pisco_code/final/', 'coadd_cField', end='i.fits')
+    #     base = pd.read_csv('/Users/taweewat/Dropbox/Documents/MIT/Observation/2017_1/all_objs.csv')
 
-    all_names = list(set([i.split('/')[-1][7:-7] for i in allnames]))
-
-
-    # all_names=['CHIPS0004-4736','CHIPS0005-2758','CHIPS0024-6820','CHIPS0302-2758','CHIPS0512-3257',\
-    # 'CHIPS0957-7554','CHIPS0137-1248','CHIPS2210-5508','CHIPS2217-3034','CHIPS2303-6807','CHIPS2325-4800']
-    # all_names=['Field101']
-    # all_names=['Field025','Field053','Field058','Field062','Field063','Field066','Field086','Field094',\
-    # 'Field101','Field105','Field159','Field208','Field217','Field292']
-
-    print 'the total number of objects:', len(all_names)
+    # all_names = list(set([i.split('/')[-1][7:-7] for i in allnames]))
 
     # chips='CHIPS0229-5232'
     # print chips, all_names[0]
@@ -208,14 +220,25 @@ if __name__ == "__main__":
                # 'Field028','Field029','Field030','Field033','Field034','Field036','Field037','Field038','Field039',\
                # 'Field040','Field042','Field044','Field045']
     # all_names=['CHIPS2210-5508','CHIPS2217-3034']
-    # all_names=['PKS1353']
-    all_names = ['CHIPS0132-1608']
+    # all_names = ['Field227']
+    # all_names = ['CHIPS0132-1608']
 
-    # for i, name in enumerate(np.append(all_names[:43],all_names[44:])):
-    for i, name in enumerate(all_names):
-    # for i, name in enumerate(all_names[ind:ind+1]):
+    dirs = ['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    home='/Users/taweewat/Documents/pisco_code/'
+    names=[]
+    myReg=re.compile(r'(CHIPS\d{4}[+-]\d{4})|(Field\d{3})')
+    for di in dirs:
+        dir=home+di
+        for text in os.listdir(dir):
+            if myReg.search(text) != None:
+                names.append(myReg.search(text).group())
+    all_fields=list(set(names))
+    all_names=all_fields
+    all_fields = ['CHIPS2223-3455']
 
-        print i, name
+    all_fields_cut = all_fields[:]
+    for i, name in enumerate(all_fields_cut):
+        print str(i) + '/' + str(len(all_fields_cut)), name
         if name=='CHIPS2249-2808':
             name='CHIPS2227-4333'
         elif name=='CHIPS2246-2854':
@@ -223,8 +246,10 @@ if __name__ == "__main__":
 
         if name[0:5]=='CHIPS':
             mode='chips'
+            base = pd.read_csv('/Users/taweewat/Documents/red_sequence/chips_all_obj.csv', index_col=0)
         elif name[0:5]=='Field':
             mode='field'
+            base = pd.read_csv('/Users/taweewat/Dropbox/Documents/MIT/Observation/2017_1/all_objs.csv')
         elif name[0:3]=='PKS':
             mode='pks'
         elif name[0:4] == 'SDSS':
@@ -274,7 +299,8 @@ if __name__ == "__main__":
         ## make jpeg image from the python script with the scale size
 
         global filename
-        filename = 'Chips_images/aplpy4_%s_img.jpeg' % name
+        filename = 'Chips_images/aplpy4_%s_img4.jpeg' % name
+        purge('.',filename)
 
         if not os.path.isfile(filename):
             print i, 'working on the the image %s'%filename

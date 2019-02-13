@@ -139,7 +139,7 @@ if __name__ == "__main__":
     #DONE: 'Field018','Field020','Field021','Field022','Field025','Field026','Field027']
     # all_names=['CHIPS0609-0247']
                # 'Field028','Field029','Field030','Field033','Field034','Field036','Field037','Field038','Field039','Field040','Field042','Field044','Field045']
-
+               
     for i, name in enumerate(np.append(all_names[:43],all_names[44:])):
     # for i, name in enumerate(all_names[ind:ind+1]):
 
