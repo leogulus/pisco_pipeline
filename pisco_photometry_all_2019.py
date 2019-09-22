@@ -29,10 +29,10 @@ import ebvpy  #Galactic Reddening
 
 """
 Example: 
-python pisco_pipeline/pisco_photometry_all.py PKS1353 psf allslr 2mass
-python pisco_pipeline/pisco_photometry_all.py PKS1353 psf allslr no2mass
-python pisco_pipeline/pisco_photometry_all.py PKS1353 psf noslr no2mass
-python pisco_pipeline/pisco_photometry_all.py PKS1353 auto noslr no2mass
+python pisco_pipeline/pisco_photometry_all_2019.py PKS1353 psf allslr 2mass
+python pisco_pipeline/pisco_photometry_all_2019.py PKS1353 psf allslr no2mass
+python pisco_pipeline/pisco_photometry_all_2019.py PKS1353 psf noslr no2mass
+python pisco_pipeline/pisco_photometry_all_2019.py PKS1353 auto noslr no2mass
 
 field: name of the fields
 mode: psf, auto, aper, hybrid, model
@@ -54,9 +54,16 @@ def find_seeing(field,band):
     elif (field[0:5]=='Field')|(field[0:3]=='PKS')|(field[0:4]=='SDSS'):
         seeing = df_see[df_see.name==field]['seeing_q25_%s'%band].values[0] #_%s'%band
         return seeing
+
+def find_seeing_new(dir,field):
+    myReg3=re.compile(r'(CHIPS)[^\_]*\_[^\_]*')
+    seeing = float(fits.open(list_file_name(dir,myReg3.search(field).group())[0])[0].header['FWHM1'])
+    return seeing
+
 def find_seeing_fits(field):
     home='/Users/taweewat/Documents/pisco_code/'
-    dirs=['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    dirs=['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/',\
+    'ut171209/','ut171212/','ut190412/','ut190413/']
     myReg=re.compile(r'(%s_A).*'%field)
     for di in dirs:
         dir=home+di
@@ -92,13 +99,17 @@ def star_galaxy_bleem(field):
         os.makedirs(sg_dir)
 
     param=read_param()
-    seeing=find_seeing(field,'i')
+    # seeing=find_seeing(field,'i')
+    # seeing=find_seeing_fits(field)
+    seeing = 1.0
     # seeing=1.5
     # seeing=0.95
     minarea=1.7
     data, header = fits.getdata('final/coadd_c%s_i.fits'%field, header=True)
     data2=data**2
+    # pxscale=0.11
     pxscale=0.22
+    
     fits.writeto('final/coadd_c%s_sq_i.fits'%field, data2, header=header, overwrite=True)
     cmd='sex final/coadd_c%s_i.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -CATALOG_TYPE FITS_1.0 -SEEING_FWHM %s -SATUR_LEVEL %s -PHOT_APERTURES 15 -PIXEL_SCALE %s -DETECT_MINAREA %s -CHECKIMAGE_NAME checki.fits,segmenti.fits'%\
     (field,'sex.param',sg_dir+'/%s_catalog.fits'%(field),str(seeing),str(param['satur_level_i_psf']),str(pxscale),str(1.1/minarea*np.pi*(seeing/pxscale)**2)); print cmd
@@ -111,6 +122,8 @@ def pisco_photometry_v4(field):
     def aperature_proj(field,band):
         param=read_param()
         seeing=find_seeing(field,band)
+        # seeing=find_seeing_fits(field)
+        # seeing = 1.1
         # seeing=1.5
 
         slrdir = 'slr_output'
@@ -122,14 +135,20 @@ def pisco_photometry_v4(field):
         fits.writeto(outname, im1, header, overwrite=True)
 
         minarea=1.7 #1.7
-        pxscale=0.22 #arcsec/px
+        pxscale=0.22
+        # pxscale=0.11
         cmd='sex final/coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PHOT_APERTURES 23 -PIXEL_SCALE %s -DETECT_MINAREA %s -CHECKIMAGE_NAME check_psf_%s.fits,segment_psf_%s.fits'%\
         (field,band,'sex_psf.param','psfex_output/psf_%s_%s.fits'%(field,band),str(seeing),str(param['satur_level_%s_psf'%band]),str(pxscale),str(1.1/minarea*np.pi*(seeing/pxscale)**2), band, band) 
         print cmd
         subprocess.check_call(shlex.split(cmd))
 
         Tf=Table(fits.open('psfex_output/psf_%s_%s.fits'%(field,band))[2].data)
-        Tfcut = Tf[(Tf['CLASS_STAR'] > 0.97) & (Tf['FLAGS'] == 0)].copy()  #0.97 Field292
+        # Tfcut = Tf[(Tf['CLASS_STAR'] > 0.97) & (Tf['FLAGS'] == 0)].copy()  #0.97 Field292
+        if len(Tf[(Tf['CLASS_STAR'] > 0.95) & (Tf['FLAGS'] < 5)]) > 0:
+            Tfcut = Tf[(Tf['CLASS_STAR'] > 0.95) & (Tf['FLAGS'] < 5)].copy()
+        else: 
+            Tfcut = Tf[(Tf['CLASS_STAR'] > 0.9) & (Tf['FLAGS'] < 5)].copy()
+        # Tfcut = Tf[(Tf['CLASS_STAR'] > 0.9) & (Tf['FLAGS'] < 5)].copy()  #0.97 Field292
         Tfcut_edge=Tfcut[(Tfcut['XWIN_IMAGE']<np.max(Tfcut['XWIN_IMAGE'])-60)&(Tfcut['XWIN_IMAGE']>np.min(Tfcut['XWIN_IMAGE'])+60)&\
                 (Tfcut['YWIN_IMAGE']<np.max(Tfcut['YWIN_IMAGE'])-60)&(Tfcut['YWIN_IMAGE']>np.min(Tfcut['YWIN_IMAGE'])+60)].copy()
         Tfcut_more=Tfcut_edge[(np.abs(Tfcut_edge['FLUX_RADIUS']-np.mean(Tfcut_edge['FLUX_RADIUS']))<2*np.std(Tfcut_edge['FLUX_RADIUS']))]
@@ -176,7 +195,7 @@ def pisco_photometry_v4(field):
     # Table_I=tablei[idxn][['NUMBER_i','XWIN_IMAGE_i','YWIN_IMAGE_i','ALPHA_J2000_i','DELTA_J2000_i','MAG_APER_i','MAGERR_APER_i','MAG_AUTO_i','MAGERR_AUTO_i','MAG_HYBRID_i','MAGERR_HYBRID_i',\
     #               'CLASS_STAR_i','FLAGS_i','MAG_PSF_i','MAGERR_PSF_i','MAG_MODEL_i','MAGERR_MODEL_i','SPREAD_MODEL_i']]
     Table_I=tablei[idxn][['NUMBER_i','XWIN_IMAGE_i','YWIN_IMAGE_i','ALPHA_J2000_i','DELTA_J2000_i','MAG_APER_i','MAGERR_APER_i','MAG_AUTO_i','MAGERR_AUTO_i','MAG_SPHEROID_i','MAGERR_SPHEROID_i',\
-                  'CLASS_STAR_i','FLAGS_i','MAG_PSF_i','MAGERR_PSF_i','MAG_MODEL_i','MAGERR_MODEL_i','SPREAD_MODEL_i','SPREADERR_MODEL_i']]
+                  'CLASS_STAR_i','FLAGS_i','MAG_PSF_i','MAGERR_PSF_i','MAG_MODEL_i','MAGERR_MODEL_i','SPREAD_MODEL_i','SPREADERR_MODEL_i','MAG_ISO_i','MAGERR_ISO_i']]
     Table_I.rename_column('ALPHA_J2000_i','ALPHA_J2000')
     Table_I.rename_column('DELTA_J2000_i','DELTA_J2000')
 
@@ -184,7 +203,7 @@ def pisco_photometry_v4(field):
     # Table_R=tabler[idxn][['NUMBER_r','ALPHA_J2000_r','DELTA_J2000_r','MAG_APER_r','MAGERR_APER_r','MAG_AUTO_r','MAGERR_AUTO_r','MAG_HYBRID_r','MAGERR_HYBRID_r',\
     #               'CLASS_STAR_r','FLAGS_r','MAG_PSF_r','MAGERR_PSF_r','MAG_MODEL_r','MAGERR_MODEL_r','SPREAD_MODEL_r']]
     Table_R=tabler[idxn][['NUMBER_r','ALPHA_J2000_r','DELTA_J2000_r','MAG_APER_r','MAGERR_APER_r','MAG_AUTO_r','MAGERR_AUTO_r','MAG_SPHEROID_r','MAGERR_SPHEROID_r',\
-                  'CLASS_STAR_r','FLAGS_r','MAG_PSF_r','MAGERR_PSF_r','MAG_MODEL_r','MAGERR_MODEL_r','SPREAD_MODEL_r','SPREADERR_MODEL_r']]
+                  'CLASS_STAR_r','FLAGS_r','MAG_PSF_r','MAGERR_PSF_r','MAG_MODEL_r','MAGERR_MODEL_r','SPREAD_MODEL_r','SPREADERR_MODEL_r','MAG_ISO_r','MAGERR_ISO_r']]
     Table_R.rename_column('ALPHA_J2000_r','ALPHA_J2000')
     Table_R.rename_column('DELTA_J2000_r','DELTA_J2000')
 
@@ -192,14 +211,14 @@ def pisco_photometry_v4(field):
     # Table_Z=tablez[idxn][['NUMBER_z','ALPHA_J2000_z','DELTA_J2000_z','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_z','MAGERR_AUTO_z','MAG_HYBRID_z','MAGERR_HYBRID_z',\
     #               'CLASS_STAR_z','FLAGS_z','MAG_PSF_z','MAGERR_PSF_z','MAG_MODEL_z','MAGERR_MODEL_z','SPREAD_MODEL_z']]
     Table_Z=tablez[idxn][['NUMBER_z','ALPHA_J2000_z','DELTA_J2000_z','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_z','MAGERR_AUTO_z','MAG_SPHEROID_z','MAGERR_SPHEROID_z',\
-                  'CLASS_STAR_z','FLAGS_z','MAG_PSF_z','MAGERR_PSF_z','MAG_MODEL_z','MAGERR_MODEL_z','SPREAD_MODEL_z','SPREADERR_MODEL_z']]
+                  'CLASS_STAR_z','FLAGS_z','MAG_PSF_z','MAGERR_PSF_z','MAG_MODEL_z','MAGERR_MODEL_z','SPREAD_MODEL_z','SPREADERR_MODEL_z','MAG_ISO_z','MAGERR_ISO_z']]
     Table_Z.rename_column('ALPHA_J2000_z','ALPHA_J2000')
     Table_Z.rename_column('DELTA_J2000_z','DELTA_J2000')
 
     # Table_G=tableg[['NUMBER_g','ALPHA_J2000_g','DELTA_J2000_g','MAG_APER_g','MAGERR_APER_g','MAG_AUTO_g','MAGERR_AUTO_g','MAG_HYBRID_g','MAGERR_HYBRID_g',\
     #               'CLASS_STAR_g','FLAGS_g','MAG_PSF_g','MAGERR_PSF_g','MAG_MODEL_g','MAGERR_MODEL_g','SPREAD_MODEL_g']]
     Table_G = tableg[['NUMBER_g', 'ALPHA_J2000_g', 'DELTA_J2000_g', 'MAG_APER_g', 'MAGERR_APER_g', 'MAG_AUTO_g', 'MAGERR_AUTO_g', 'MAG_SPHEROID_g', 'MAGERR_SPHEROID_g',
-                  'CLASS_STAR_g','FLAGS_g','MAG_PSF_g','MAGERR_PSF_g','MAG_MODEL_g','MAGERR_MODEL_g','SPREAD_MODEL_g','SPREADERR_MODEL_g']]
+                  'CLASS_STAR_g','FLAGS_g','MAG_PSF_g','MAGERR_PSF_g','MAG_MODEL_g','MAGERR_MODEL_g','SPREAD_MODEL_g','SPREADERR_MODEL_g','MAG_ISO_g','MAGERR_ISO_g']]
     Table_G.rename_column('ALPHA_J2000_g','ALPHA_J2000')
     Table_G.rename_column('DELTA_J2000_g','DELTA_J2000')
 
@@ -231,7 +250,9 @@ def pisco_photometry_v4(field):
                 'MAG_APER_i','MAGERR_APER_i','MAG_APER_g','MAGERR_APER_g','MAG_APER_r',\
                 'MAGERR_APER_r','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_i','MAGERR_AUTO_i',\
                 'MAG_AUTO_g','MAGERR_AUTO_g','MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z',\
-                'MAGERR_AUTO_z','MAG_SPHEROID_i','MAGERR_SPHEROID_i','MAG_SPHEROID_g',\
+                'MAGERR_AUTO_z','MAG_ISO_g','MAGERR_ISO_g','MAG_ISO_r','MAGERR_ISO_r',\
+                'MAG_ISO_i','MAGERR_ISO_i','MAG_ISO_z','MAGERR_ISO_z',\
+                'MAG_SPHEROID_i','MAGERR_SPHEROID_i','MAG_SPHEROID_g',\
                 'MAGERR_SPHEROID_g','MAG_SPHEROID_r','MAGERR_SPHEROID_r','MAG_SPHEROID_z',\
                 'MAGERR_SPHEROID_z','CLASS_STAR_i','CLASS_STAR_g','CLASS_STAR_r',\
                 'CLASS_STAR_z','FLAGS_g','FLAGS_r','FLAGS_i','FLAGS_z','MAG_PSF_g',\
@@ -419,80 +440,8 @@ def pisco_cut_frame(field):
     c_d: Faintest magnitude for stars used for the linear fit
     c_delta: lower limit for Delta to consider stars before fitting the gaussian and find SG (Star/Galaxy) factor 
     """
-
-    global star_cut
-    global aper_cut
-    global SG_upper
-    star_cut=0.95
-    aper_cut=21.5
-    # aper_cut=22.0
-    SG_upper=0.02
     seeing=find_seeing_fits(field)
     true_seeing=find_seeing(field,'i')
-    if field=='Field179':
-        true_seeing=1.12
- 
-    if field=='CHIPS1011-0505':
-        # c_a,c_b,c_c,c_d,c_delta=[0.95,-9.,-12.5,-9.2,-0.25]
-        c_a,c_b,c_c,c_d,c_delta=[0.95,-12.,-12.5,-13,-0.1]
-    elif field=='CHIPS2317-1443':
-        c_a,c_b,c_c,c_d,c_delta=[0.95,-11.,-12.5,-14,-0.05]
-    elif (field == 'Field137') or (field == 'Field071') or (field == 'Field109'):
-        # c_a,c_b,c_c,c_d,c_delta=[0.95,-8.,-11.5,-8.5,-0.2]
-        c_a,c_b,c_c,c_d,c_delta=[0.95,-12.,-12.5,-13,-0.15]
-    elif (field[0:3]=='PKS') or (field[0:4]=='SDSS'):
-        # c_a,c_b,c_c,c_d,c_delta=[0.95,-7,-12.2,-8.5,-0.1]
-        c_a, c_b, c_c, c_d, c_delta = [0.95, -11, -13, -13, -0.1]
-    elif field[0:5]=='CHIPS':
-        # c_a,c_b,c_c,c_d,c_delta=[0.95,-9.,-12.5,-11.8,-0.1] #-0.15 (default), -10
-        c_a,c_b,c_c,c_d,c_delta=[0.95,-11.,-12.2,-12.2,-0.1] #-0.15 (default), -10
-    elif field[0:5]=='Field':
-        # c_a,c_b,c_c,c_d,c_delta=[0.95,-8.,-11.5,-8.5,-0.1] #-8.5, -0.1 (Default)
-        c_a,c_b,c_c,c_d,c_delta=[0.95,-11,-12.5,-12.5,-0.1]
-
-    df_i_cut, df_i1=pisco_cut_star(field,c_a,c_b,c_d,c_delta)
-    while len(df_i1[(df_i1['MAG_APER']<c_b)&(df_i1['MAG_APER']>c_b-0.5)\
-                    &(df_i1['SG']>0.2)&(df_i1['SG']<0.8)])<25: #8, 10 (default)
-        len_df_i1=len(df_i1)
-        c_b=c_b+0.5
-        df_i_cut, df_i1 = pisco_cut_star(field,c_a,c_b,c_d,c_delta)
-        if len_df_i1==len(df_i1):
-            break
-
-    def SG_cut(SG, aper, aper0):
-        if aper<aper0:
-            if SG <= SG_upper:
-                return True
-            else:
-                return False
-        else:
-            return True
-    param_izp=read_param_izp('psf')
-    mag0=param_izp['i_zp_day%i'%dir_dict[find_fits_dir(field)[-9:]]]
-    vSG_cut = np.vectorize(SG_cut)
-    vSGcut = vSG_cut(df_i1['SG'].values, df_i1['MAG_APER'].values+mag0, aper_cut)
-    dff=df_i1[vSGcut]
-    # dff=df_i1[df_i1['CLASS_STAR']<0.5]
-    # dff=df_i1[df_i1['SG']<star_cut] #0.8
-
-    vSGcut_star = vSG_cut(0.01, df_i1['MAG_APER'].values+mag0, aper_cut)
-    if field=='Field292':
-        dff_star = df_i1[(df_i1['SG'] > 0.1) & (df_i1['MAG_APER'].values+mag0<20)]
-    else:
-        dff_star = df_i1[(df_i1['SG'] > 0.9)] #vSGcut_star
-    # dff_star = df_i1[(df_i1['SG'] > 0.9)]  # no_2mass cut
-
-    ##After running pisco_photometry_v4.fits, but before running
-    ##pisco_photometry_psf_v4.fits, and then 19_pisco_tilt_resequence.ipynb
-    # fname = "/Users/taweewat/Documents/pisco_code/slr_output/total_psf_%s.csv"%field
-    # df0 = pd.read_csv(fname)
-    # df0['NUMBER']=np.arange(0,len(df0),1).tolist()  #add NUMBER parameter to match between cut catalog and the total catalog
-    # df0.rename(columns={'ALPHA_J2000': 'ALPHA_J2000_i'}, inplace=True)
-    # df0.rename(columns={'DELTA_J2000': 'DELTA_J2000_i'}, inplace=True)
-    # print len(df0), len(df_i_cut), len(dff), len(dff_star), '=', seeing, 'vs [NEW]', true_seeing
-    # if len(df0)!=len(df_i_cut):
-    #     raise ValueError('the two tables do not have the same length')
-    # dff0=pd.merge(dff,df0,on='NUMBER')
 
     ##Using SPREAD_MODEL to seperate star/galaxies
     fname = "/Users/taweewat/Documents/pisco_code/slr_output/total_psf_%s.csv"%field
@@ -514,30 +463,12 @@ def pisco_cut_frame(field):
     p_spread=np.poly1d(np.polyfit(x,y,1))
     xs=np.arange(np.min(df0['MAG_AUTO_i']),np.max(df0['MAG_AUTO_i']),0.01)
 
-    # fig=plt.figure(figsize=(8,4))
-    # plt.subplot(1,2,1)
-    # plt.plot(df0['MAG_AUTO_i'],df0['SPREAD_MODEL_i'],'.',alpha=0.5)
-    # plt.plot(x,y,'.',alpha=0.5)
-    # plt.plot(xs,p_spread(xs))
-    # plt.axhline(0.005,color='tab:orange')
-    # plt.ylim(-0.1, 0.1)
-    # plt.xlim(-20,-11)
-    # plt.subplot(1,2,2)
-    # plt.plot(df0['MAG_AUTO_i'],df0['SPREAD_MODEL_i']-p_spread(df0['MAG_AUTO_i']),'.',alpha=0.5)
-    # plt.axhline(0.005,color='tab:orange')
-    # plt.ylim(-0.1, 0.1)
-    # plt.xlim(-20,-11)
-    # plt.tight_layout()
-    # plt.savefig('/Users/taweewat/Documents/red_sequence/pisco_color_plots/spread_model_i_fit_%s_%s.png' %
-    #         (mode, field), dpi=120)
-    # plt.close(fig)
-
     df0['SPREAD_MODEL_i2']=df0['SPREAD_MODEL_i']-p_spread(df0['MAG_AUTO_i'])
 
 
-    dff=df0[(df0['SPREAD_MODEL_i'])>0.005]
+    dff=df0[(df0['SPREAD_MODEL_i']>0.005)]
     # dff_star=df0[np.abs(df0['SPREAD_MODEL_i'])<0.004] #+5/3.*df0['SPREADERR_MODEL_i'] <0.002
-    dff_star=df0[(df0['SPREAD_MODEL_i']<0.005)]#&(df0['FLAGS_i']<4)]
+    dff_star=df0[(df0['SPREAD_MODEL_i']<0.004)]#&(df0['FLAGS_i']<4)]
 
     fig=plt.figure(figsize=(4,4))
     plt.plot(df0['MAG_AUTO_i'],df0['SPREAD_MODEL_i'],'.',c='grey',alpha=0.1)
@@ -550,6 +481,7 @@ def pisco_cut_frame(field):
     plt.savefig('/Users/taweewat/Documents/red_sequence/pisco_color_plots/spread_model_real_i_fit_%s_%s.png' %
         (mode, field), dpi=120)
     plt.close(fig)
+
 
     dff0=dff
     dff0.to_csv("/Users/taweewat/Documents/pisco_code/slr_output/"+\
@@ -619,6 +551,9 @@ def pisco_photometry_psf_v4(field, mode='psf', mode2mass='', slr=True):  #mode2m
             MODE1='APER'
         elif mode=='hybrid':
             MODE1='HYBRID'
+        elif mode=='iso':
+            MODE1='ISO'
+
 
         table['MAG_' + band[0]] = table['MAG_%s_'%MODE1 + band[0]] + corr[0]
         table['MAG_' + band[1]] = table['MAG_%s_'%MODE1 + band[1]] + corr[1]
@@ -628,33 +563,27 @@ def pisco_photometry_psf_v4(field, mode='psf', mode2mass='', slr=True):  #mode2m
         table['MAGERR_' + band[1]] = (table['MAGERR_%s_'%MODE1 + band[1]]**2)**0.5# + ecorr[1]**2)**0.5
         table['MAGERR_' + band[2]] = (table['MAGERR_%s_'%MODE1 + band[2]]**2)**0.5# + ecorr[2]**2)**0.5
         table['MAGERR_' + band[3]] = (table['MAGERR_%s_'%MODE1 + band[3]]**2)**0.5# + ecorr[3]**2)**0.5
-        # table['MAGERR_' + band[0]] = (table['MAGERR_%s_'%MODE1 + band[0]]**2)**0.5
-        # table['MAGERR_' + band[1]] = (table['MAGERR_%s_'%MODE1 + band[1]]**2)**0.5
-        # table['MAGERR_' + band[2]] = (table['MAGERR_%s_'%MODE1 + band[2]]**2)**0.5
-        # table['MAGERR_' + band[3]] = (table['MAGERR_%s_'%MODE1 + band[3]]**2)**0.5
+
         return table
 
     slrdir = 'slr_output'
-    total3 = Table.from_pandas(pd.read_csv(
-        "/Users/taweewat/Documents/pisco_code/slr_output/star_psf_total_%s.csv" % field))  # star_psf_total_gaia
-    # total3=total3[['NUMBER','ALPHA_J2000_i','DELTA_J2000_i','XWIN_IMAGE_i','YWIN_IMAGE_i',\
-    #               'MAG_APER_i','MAGERR_APER_i','MAG_APER_g','MAGERR_APER_g','MAG_APER_r',\
-    #               'MAGERR_APER_r','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_i','MAGERR_AUTO_i',\
-    #               'MAG_AUTO_g','MAGERR_AUTO_g','MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z',\
-    #               'MAGERR_AUTO_z','MAG_HYBRID_i','MAGERR_HYBRID_i','MAG_HYBRID_g',\
-    #               'MAGERR_HYBRID_g','MAG_HYBRID_r','MAGERR_HYBRID_r','MAG_HYBRID_z',\
-    #               'MAGERR_HYBRID_z','CLASS_STAR_i','CLASS_STAR_g','CLASS_STAR_r',\
-    #               'CLASS_STAR_z','FLAGS_g','FLAGS_r','FLAGS_i','FLAGS_z','MAG_PSF_g',\
-    #               'MAG_PSF_r','MAG_PSF_i','MAG_PSF_z','MAGERR_PSF_g','MAGERR_PSF_r',\
-    #               'MAGERR_PSF_i','MAGERR_PSF_z','MAG_MODEL_g','MAG_MODEL_r',\
-    #               'MAG_MODEL_i','MAG_MODEL_z','MAGERR_MODEL_g','MAGERR_MODEL_r',\
-    #               'MAGERR_MODEL_i','MAGERR_MODEL_z','SPREAD_MODEL_g','SPREAD_MODEL_r',\
-    #               'SPREAD_MODEL_i','SPREAD_MODEL_z',]]
+    df0=pd.read_csv("/Users/taweewat/Documents/pisco_code/slr_output/star_psf_total_%s.csv" % field,index_col=0)
+    # if field=='SDSS603':
+    #     df0=df0.drop([399,258,357,157,381,310,86,81,31,66,422,232,208,19,10])
+    # elif field=='SDSS501':
+    #     df0=df0.drop([265,108,196,213,160])
+    # elif field=='SDSS123':
+        # df0=df0.drop([68,5,61])
+    # else:
+    #     df0=df0    
+    total3 = Table.from_pandas(df0)
     total3=total3[['NUMBER','ALPHA_J2000_i','DELTA_J2000_i','XWIN_IMAGE_i','YWIN_IMAGE_i',\
             'MAG_APER_i','MAGERR_APER_i','MAG_APER_g','MAGERR_APER_g','MAG_APER_r',\
             'MAGERR_APER_r','MAG_APER_z','MAGERR_APER_z','MAG_AUTO_i','MAGERR_AUTO_i',\
             'MAG_AUTO_g','MAGERR_AUTO_g','MAG_AUTO_r','MAGERR_AUTO_r','MAG_AUTO_z',\
-            'MAGERR_AUTO_z','MAG_SPHEROID_i','MAGERR_SPHEROID_i','MAG_SPHEROID_g',\
+            'MAGERR_AUTO_z','MAG_ISO_i','MAGERR_ISO_i','MAG_ISO_g','MAGERR_ISO_g','MAG_ISO_r',\
+            'MAGERR_ISO_r','MAG_ISO_z','MAGERR_ISO_z',\
+            'MAG_SPHEROID_i','MAGERR_SPHEROID_i','MAG_SPHEROID_g',\
             'MAGERR_SPHEROID_g','MAG_SPHEROID_r','MAGERR_SPHEROID_r','MAG_SPHEROID_z',\
             'MAGERR_SPHEROID_z','CLASS_STAR_i','CLASS_STAR_g','CLASS_STAR_r',\
             'CLASS_STAR_z','FLAGS_g','FLAGS_r','FLAGS_i','FLAGS_z','MAG_PSF_g',\
@@ -667,29 +596,34 @@ def pisco_photometry_psf_v4(field, mode='psf', mode2mass='', slr=True):  #mode2m
 
     print 'number of stars =', len(total3)
 
-    if (mode2mass==''):# and (mode=='psf'):
+    if (mode2mass==''):
         starpsfmode = '_psf'
-    # elif (mode2mass=='') and (mode=='model'):
-    #     starpsfmode = '_psf' #'_model'
-    elif (mode2mass=='_no2mass'):# and (mode=='model'):
-        starpsfmode ='_no2mass' #'_model_no2mass'
-    # elif (mode2mass == '_no2mass') and (mode=='psf'):
-    #     starpsfmode = '_no2mass'
+    elif (mode2mass=='_no2mass'):
+        starpsfmode ='_no2mass'
 
     # total3.write(slrdir+'/star_psf%s_%s_%i.fits' % ('_psf',field,0), overwrite=True) #with 2MASS stars: star_psf_psf_%s_%i.fits
-    total3.write(slrdir + '/star_psf%s_%s_%i.fits' % (starpsfmode, field, 0),
-                 overwrite=True)  # no 2MASS star mode vs , '_psf' vs '_no2mass'
+    total3.write(slrdir+'/star_psf%s_%s_%i.fits'%(starpsfmode,field,0),overwrite=True)  
+    # no 2MASS star mode vs , '_psf' vs '_no2mass'
 
     if slr:
         slr_running_psf(field, infile=slrdir + '/star_psf%s_%s_%i.fits' %
                         (starpsfmode, field, 0), mode='psf', mode2mass=mode2mass)  # '_psf' vs '_no2mass'
 
-    total_gal=Table.from_pandas(pd.read_csv("/Users/taweewat/Documents/pisco_code/slr_output/galaxy_psf_total_%s.csv"%(field)))
     print 'mode=', mode, '/star_psf%s_%s_%i.fits.offsets.list' % (starpsfmode, field, 0)
-    ntotal_gal = update_color(slrdir + '/star_psf%s_%s_%i.fits.offsets.list' %
-                              (starpsfmode, field, 0), total_gal, mode=mode)  # '' vs '_no2mass
+
+    total_gal=Table.from_pandas(pd.read_csv("/Users/taweewat/Documents/pisco_code/slr_output/galaxy_psf_total_%s.csv"%(field)))
+    ntotal_gal = update_color(slrdir+'/star_psf%s_%s_%i.fits.offsets.list' %
+                              (starpsfmode, field, 0), total_gal, mode=mode)
     ntotal_gal.write(os.path.join(
-        slrdir, 'galaxy_%s%s_ntotal_%s.csv' % (mode, mode2mass, field)), overwrite=True)  # '' vs '_no2mass'
+        slrdir, 'galaxy_%s%s_ntotal_%s.csv'%(mode,mode2mass,field)), overwrite=True)
+
+
+    total_star=Table.from_pandas(pd.read_csv("/Users/taweewat/Documents/pisco_code/slr_output/star_psf_total_%s.csv"%(field)))
+    ntotal_star = update_color(slrdir+'/star_psf%s_%s_%i.fits.offsets.list'%
+                              (starpsfmode, field, 0), total_star, mode=mode)
+    ntotal_star.write(os.path.join(
+        slrdir, 'star_%s%s_ntotal_%s.csv'%(mode,mode2mass,field)), overwrite=True)
+
 
 def make_images(field,ax=None):
     dir='/Users/taweewat/Documents/pisco_code/Chips_images/'
@@ -781,7 +715,7 @@ def linear_gmi(x0,redshift):
 def find_fits_dir(field):
     home = '/Users/taweewat/Documents/pisco_code/'
     dirs = ['ut170103/', 'ut170104/', 'ut170619/', 'ut170621/',\
-            'ut170624/', 'ut171208/', 'ut171209/', 'ut171212/']#,'ut190412/','ut190413/']
+            'ut170624/', 'ut171208/', 'ut171209/', 'ut171212/']
     myReg = re.compile(r'(%s_A).*' % field)
     for di in dirs:
         diri = home + di
@@ -831,6 +765,7 @@ def find_ra_dec(field):
         redshift = base[base.name == field].redshift.values[0]
     return RA, DEC, redshift
 
+
 def pisco_tilt_resequence(field, mode='psf', mode2mass=''):
     RA, DEC, redshift = find_ra_dec(field)
 
@@ -853,7 +788,8 @@ def pisco_tilt_resequence(field, mode='psf', mode2mass=''):
     param_izp=read_param_izp(mode) #i zero point
 
     # fname = "/Users/taweewat/Documents/pisco_code/slr_output/galaxy_ntotal_%s.csv"%field
-    fname = "/Users/taweewat/Documents/pisco_code/slr_output/galaxy_%s%s_ntotal_%s.csv" % (
+    dir_slrout='/Users/taweewat/Documents/pisco_code/slr_output/'
+    fname = dir_slrout+"galaxy_%s%s_ntotal_%s.csv" % (
         mode, mode2mass, field)  # '' vs '_no2mass'
     df0 = pd.read_csv(fname,index_col=0)
     if gremove:
@@ -880,19 +816,41 @@ def pisco_tilt_resequence(field, mode='psf', mode2mass=''):
     # Use i Zero Point from each day and g,r zero point fron the color (6/22/18)
     elif mode2mass == '_no2mass':
         mag0 = param_izp['i_zp_day%i'%dir_dict[find_fits_dir(field)[-9:]]]
+        print 'i_zp_day', find_fits_dir(field), mag0
         dfi['MAG_i']=dfi['MAG_i']-ebv_i+mag0
         dfi['MAG_g']=dfi['MAG_g']-ebv_g+mag0
         dfi['MAG_r']=dfi['MAG_r']-ebv_r+mag0
-        dfi['MAG_z']=dfi['MAG_z']-ebv_z+mag0 #+param_izp['i_zp_day%i'%dir_dict[find_fits_dir(field)[-9:]]]
-        # dfi['MAGERR_i']=np.sqrt(dfi['MAGERR_i']**2-(99**2))
+        dfi['MAG_z']=dfi['MAG_z']-ebv_z+mag0
 
-    dfi.to_csv("/Users/taweewat/Documents/pisco_code/slr_output/galaxy_%s_final_%s.csv"%(mode,field))
+    dfi.to_csv(dir_slrout+"galaxy_%s_final_%s.csv"%(mode,field))
+    
+    fname=dir_slrout+"star_%s%s_ntotal_%s.csv" % (mode, mode2mass, field)
+    df0=pd.read_csv(fname,index_col=0)
+    dfi=df0
+    # Added Galactic Reddening (6/16/18)
+    if mode2mass == '':
+        dfi['MAG_i']=dfi['MAG_i']-ebv_i
+        dfi['MAG_g']=dfi['MAG_g']-ebv_g
+        dfi['MAG_r']=dfi['MAG_r']-ebv_r
+    # Use i Zero Point from each day and g,r zero point fron the color (6/22/18)
+    elif mode2mass == '_no2mass':
+        mag0 = param_izp['i_zp_day%i'%dir_dict[find_fits_dir(field)[-9:]]]
+        print 'i_zp_day', find_fits_dir(field), mag0
+        dfi['MAG_i']=dfi['MAG_i']-ebv_i+mag0
+        dfi['MAG_g']=dfi['MAG_g']-ebv_g+mag0
+        dfi['MAG_r']=dfi['MAG_r']-ebv_r+mag0
+        dfi['MAG_z']=dfi['MAG_z']-ebv_z+mag0
+    dfi.to_csv(dir_slrout+"star_%s_final_%s.csv"%(mode,field))
+        
+    
+    
     return None
 
     # dfi=dfi[dfi['MAG_i']<21.5].copy()
     # dfi=dfi[dfi.MAGERR_g<0.5]
     # dfi=dfi[(dfi.MAG_g<100)&(dfi.MAG_i<100)&(dfi.MAG_r<100)]
     # dfi=dfi[(dfi.FLAGS_g<5)&(dfi.FLAGS_r<5)&(dfi.FLAGS_i<5)&(dfi.FLAGS_z<5)]
+
 def xxx(x):
     dfi=dfi[np.sqrt(dfi['MAGERR_r']**2+dfi['MAGERR_i']**2)<0.3].copy() #0.5
     x=dfi['MAG_i']
@@ -1084,62 +1042,7 @@ def xxx(x):
     print 'density_factor', density_factor
 
     # duplicate=False ## set duplication
-    if duplicate:
-        dff = dfi.copy()
-        fig=plt.figure(figsize=(10,3.5))
-        plt.subplot(1,3,1)
-        bin_width=0.035
-        ns1, xs1 = np.histogram(dff['z_gmr'].dropna(), bins=bins_gmr_edge, weights=np.array(dff['w_gmr'].dropna()))
-        bin_cen1 = (xs1[:-1] + xs1[1:])/2
-        ns2,xs2=np.histogram(dff['z_rmi'].dropna(),bins=bins_rmi_edge,weights=np.array(dff['w_rmi'].dropna()))
-        bin_cen2 = (xs2[:-1] + xs2[1:])/2
-        plt.bar(bin_cen1, ns1, width=0.035, color='#ff7f0e')
-        plt.bar(bin_cen2, ns2, width=0.035, color='#1f77b4')
-        if np.max(np.append(ns1,ns2))<30:
-            plt.ylim(0,30)
-        plt.xlabel('all objects')
-        plt.xlim(0.1, 0.7)
-        plt.subplot(1,3,2)
-        dff_dup=dff.dropna()
-        ns_dup1,xs_dup1=np.histogram(dff_dup['z_gmr'],bins=bins_gmr_edge,weights=np.array(dff_dup['w_gmr']))
-        bin_cen1 = (xs1[:-1] + xs1[1:])/2
-        ns_dup2,xs_dup2=np.histogram(dff_dup['z_rmi'],bins=bins_rmi_edge,weights=np.array(dff_dup['w_rmi']))
-        bin_cen2 = (xs2[:-1] + xs2[1:])/2
-        plt.bar(bin_cen1, ns_dup1, width=0.035, color='#ff7f0e')
-        plt.bar(bin_cen2, ns_dup2, width=0.035, color='#1f77b4')
-        if np.max(np.append(ns_dup1,ns_dup2))<30:
-            plt.ylim(0,30)
-        plt.xlabel('duplicate')
-        plt.xlim(0.1,0.7)
-        
-        n_total_dup=np.append(ns1-ns_dup1,ns2-ns_dup2)
-        n_bkg_dup = np.mean(sorted(n_total_dup)[2:-2])
-        z_total_added = np.insert(
-            np.append(z_total, z_total[-1] + bin_width), 0, z_total[0] - bin_width)
-        n_total_added = np.insert(np.append(n_total_dup, 0), 0, 0) - n_bkg_dup
-        indi = np.where(n_total_added == np.max(n_total_added))[0][0]
-        z_fit_dup = z_total_added[[indi - 1, indi, indi + 1]]
-        n_fit_dup = n_total_added[[indi - 1, indi, indi + 1]]
-        popt_dup, pcov_dup = curve_fit(gaussian_func, z_fit_dup, n_fit_dup, p0=[n_fit_dup[1],z_fit_dup[1]])
-        signal_dup= tuple(popt_dup)[0] / (lum_factor * density_factor)
-        z_max_fit=tuple(popt_dup)[1]
-
-        plt.subplot(1, 3, 3)
-        plt.bar(bin_cen1, ns1 - ns_dup1, width=0.035, color='#ff7f0e')
-        plt.bar(bin_cen2, ns2 - ns_dup2, width=0.035, color='#1f77b4')
-        if np.max(n_total_dup)<30:
-            plt.ylim(0,30)
-        plt.xlabel('all objects-duplicate')
-        plt.xlim(0.1, 0.7)
-        plt.axvline(z_max_fit,ls='--',color='purple',label='z_max:%.2f'%z_max_fit)
-        plt.axvline(redshift,color='red',label='z:%.2f'%redshift)
-        plt.legend(loc='best')
-        plt.tight_layout()
-        plt.savefig('/Users/taweewat/Documents/red_sequence/pisco_color_plots/redsq_dup_%s_all_%.3f_%s_tilted.png' %
-                    (mode, signal_dup, field), dpi=120)
-        plt.close(fig)
-    else:
-        n_total_dup=0
+    n_total_dup=0
 
     ## Plot the figure
     cmap=matplotlib.cm.RdYlGn
@@ -1378,8 +1281,6 @@ def xxx(x):
     # df_richness.loc[df_richness['name'] == field, 'density_factor'] = density_factor
     # df_richness.to_csv(red_dir+rich_filename,index=0)
 
-    dfi.to_csv("/Users/taweewat/Documents/pisco_code/slr_output/galaxy_%s_final_%s.csv"%(mode,field))
-
     red_dir='/Users/taweewat/Documents/red_sequence/'
     rich_filename = 'all_richness_%s.csv'%extra_name
     if not os.path.isfile(red_dir + rich_filename):
@@ -1579,7 +1480,8 @@ if __name__ == "__main__":
         mode2mass='_no2mass'
 
     home='/Users/taweewat/Documents/pisco_code/' #09, 171208
-    dirs=['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    # dirs=['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    dirs=['ut190412','ut190413']
     # 'ut171208/', 'ut171209/','ut171212/', 'ut170621/', 'ut170624/'
     # dirs = ['ut170621/','ut170624/']
     # dirs = ['ut170619/']
@@ -1597,91 +1499,14 @@ if __name__ == "__main__":
     infile = open('/Users/taweewat/Documents/xray_project/code_github/allremove_chips.txt', 'r')
     exception = [i.strip() for i in infile.readlines()]
 
-    # exception = ['CHIPS0525-6938', 'Field234']
-    # exception = ['CHIPS0525-6938', 'Field234', 'CHIPS0025-5427', 'Field030', 'Field213', 'Field151', 'Field089', \
-    #             'CHIPS0040-2902', 'CHIPS0229-5232','CHIPS0012-1628']
-    #'CHIPS0411-5149','CHIPS1011-0505','CHIPS0222-4159','CHIPS0040-2902','CHIPS0025-5427',\
-    #     'CHIPS2243-3034','CHIPS0012-1628','CHIPS0302-2758','CHIPS2251-3210','CHIPS0005-2758','CHIPS0132-1608',\
-    #     'CHIPS2340-2302','CHIPS0304-3556','CHIPS0018-1840','CHIPS1141-1407','CHIPS1142-1422','CHIPS2311-4718',\
-    #     'CHIPS0325-4926','Field029','Field042','CHIPS0150-3338','CHIPS0335-4715','CHIPS0118-1430','CHIPS1034-2837',\
-    #     'Field237','Field234','Field037','CHIPS0140-1533','CHIPS0409-2839','Field228','CHIPS0022-5140',\
-    #     'CHIPS0512-3257','CHIPS2218-2947','CHIPS0536-3401','CHIPS0152-5028','Field060','CHIPS0355-6645','CHIPS0514-5046',\
-    #     'CHIPS0050-5249','CHIPS0153-3143','CHIPS0157-1043','CHIPS2227-4333','CHIPS0316-2247','CHIPS0724-0715','Field116',\
-    #     'CHIPS0253-5441','CHIPS2228-3220','CHIPS2306-3439','CHIPS2307-4236','CHIPS1205-2633','Field105',\
-    #     'Field103','CHIPS0004-4736','CHIPS0024-6820','CHIPS2303-6807','CHIPS0342-3703','CHIPS0827-2026',\
-    #     'CHIPS2348-3831','CHIPS0525-6938','CHIPS0847-0703','CHIPS0449-4350','CHIPS0449-3910','CHIPS2325-4800','CHIPS2254-3635','CHIPS0219-3626']
-    #'Field166', 'Field054', 'CHIPS0229-5232','CHIPS0552-2336'
+    all_fields_cut = all_fields[:]
+    all_fields_cut = ['SDSS603','SDSS501','SDSS123']
+    print all_fields_cut
+    # all_fields_cut = ['CHIPS1422-2728']
 
-    # all_fields = ['Field092', 'Field036', 'Field056', 'Field055', 'Field204', 'Field205', 'Field201',\
-    #               'Field198', 'Field219', 'Field218', 'Field071', 'Field073', 'Field075', 'Field182', 'Field151']
-    
-    # all_fields = ['Field137']
-    # all_fields=['Field101','Field027','Field024','Field102']
-    # ['Field166','Field137','Field048','Field039']  #['Field166']
-    # all_fields = ['CHIPS0745-0714']
-    # all_fields = ['Field187']
-    # ['CHIPS0003-2521', 'CHIPS2349-2352', 'CHIPS2340-2302','CHIPS0106-1149']
-    # all_fields = ['Field039','Field233','Field084','Field210'] 
-    # ['CHIPS0824-3020', 'CHIPS0936-3342','CHIPS1009-3015', 'CHIPS1036-3513']
 
-    #Day8 2mass:  u'CHIPS0106-2358' (1 2mass stars)
-    # all_fields=[u'CHIPS2317-1443',u'CHIPS2333-2407',u'CHIPS2349-2352',u'CHIPS2357-1125',u'CHIPS0003-2521',u'CHIPS0015-1513', u'CHIPS0050-1412',\
-    # u'CHIPS0106-1149',u'CHIPS0107-1310',u'CHIPS0116-1136',u'CHIPS0122-2646',u'CHIPS0137-1248']
-    # Day7 2mass
-    # all_fields=[u'CHIPS2101-6132',u'CHIPS2127-4725',u'CHIPS2133-2815',u'CHIPS2139-3911',u'CHIPS2141-3729',u'CHIPS2148-2735',u'CHIPS2148-3715',u'CHIPS2210-5508',\
-    # u'CHIPS2211-3707',u'CHIPS2216-2803',u'CHIPS2217-3034',u'CHIPS2221-2804',u'CHIPS2246-2854',u'CHIPS2249-2808',u'CHIPS0004-2902',u'CHIPS0112-2919',\
-    # u'CHIPS0115-3047',u'CHIPS0206-7148',u'CHIPS0209-6810',u'CHIPS0300-3413',u'CHIPS0310-3723',u'CHIPS0148-2238',u'CHIPS0522-1745',u'CHIPS0303-2407',\
-    # u'CHIPS0609-0247',u'CHIPS0745-0714',u'CHIPS0821-0815',u'CHIPS0849-1721',u'CHIPS0920-2257',u'CHIPS0934-1721',u'CHIPS1102-3031',u'CHIPS1147-1252']
-
-    # Day6: 2mass CHIPS2251-3827 (1 2mass star)
-    # all_fields=[u'CHIPS2333-6144',\
-    # u'CHIPS0049-4457',u'CHIPS0127-4016',u'CHIPS0133-4358',u'CHIPS0146-3648',u'CHIPS0146-3711',u'CHIPS0423-3953',\
-    # u'CHIPS0449-2859',u'CHIPS0532-3917',u'CHIPS0535-6602',u'CHIPS0824-3020',u'CHIPS0936-3342',u'CHIPS0957-7554',\
-    # u'CHIPS1009-3015',u'CHIPS1036-3513']
-
-    # Day3: 
-    # all_fields = [u'Field074',u'Field045',u'Field058',u'Field059',u'Field210',u'Field212',u'Field047',u'Field225',u'Field226',u'Field046',u'Field072',u'Field076',
-    # u'Field084',u'Field085',u'Field048',u'Field038',u'Field087',u'Field233',u'Field025',u'Field020',u'Field039',u'Field018',u'Field021',u'Field022',u'Field077',
-    # u'Field121',u'Field266',u'Field269',u'Field115',u'Field088',u'Field274',u'Field279',u'Field292',u'Field124']
-    # all_fields = ['CHIPS2317-1443']
-    # all_fields = ['CHIPS2317-1443']
-    # Field063 (130)
-    # all_fields=['CHIPS0137-1248']
-    # all_fields=['CHIPS1011-0505']
-    # all_fields=['Field159']
-    # all_fields=['Field292']
-    # all_fields=['Field159']
-    # all_fields=['Field137','Field071','Field109']
-    # all_fields=['CHIPS0024-6820']
-    # all_fields = ['CHIPS0122-2646']
-    # all_fields_cut = all_fields[86:]
-    # all_fields = ['Field292']
-    # all_fields = ['Field292']
-    # all_fields = ['CHIPS2249-2808','CHIPS2246-2854']
-    # all_fields_cut = all_fields[21:]
-    # all_fields_cut=['CHIPS1011-0505']
-    # all_fields_cut=['CHIPS1422-2728']
-    # all_fields_cut=['Field292']
-    # all_fields_cut = all_fields[:]
     notgoflag=True
     z_total_all,n_total_all,n_total_dup_all=[],[],[]
-
-
-    #skip: CHIPS0137-1248 (9), CHIPS2249-2808 (51)
-
-    infile = open('/Users/taweewat/Documents/xray_project/code_github/allremove_chips_new.txt', 'r')
-    exception = [i.strip() for i in infile.readlines()]
-    total=pd.read_csv('/Users/taweewat/Documents/xray_project/ned-result/total_776_new_pan.csv',index_col=0)
-    total=total[np.where(total['chips'].isin(exception),False,True)]
-    df_pisco=total[(total['pisco']==True)]
-    df_pisco_cut=df_pisco[df_pisco['pisco_new']==False]['name'].values
-    all_fields_cut=df_pisco_cut[:]
-    # all_fields_cut=['CHIPS2249-2808']  
-    # all_fields_cut=['CHIPS2246-2854']  
-    # all_fields_cut='CHIPS'
-
-    all_fields_cut=['CHIPS0137-1248']
-
     for index, field in enumerate(all_fields_cut):
         print field, '%i/%i' % (index, len(all_fields_cut))
 
@@ -1691,22 +1516,22 @@ if __name__ == "__main__":
         #     continue 
         if field in exception:
             continue
+        if field in ['CHIPS1933-1511']:
+            continue
 
         if slr=='allslr':
-            star_galaxy_bleem(field)
+            print 'allslr'
             pisco_photometry_v4(field)
-            # pisco_cut_frame(field)
         elif slr=='slr':
             # star_galaxy_bleem(field)
-            # pisco_photometry_v4(field)
-
             pisco_cut_frame(field)
             pisco_photometry_psf_v4(field, mode=mode, mode2mass=mode2mass, slr=slr_param)
-            # purge('/Users/taweewat/Documents/red_sequence/pisco_color_plots/'\
-            #     ,r'(redsq_%s_all_.*%s.*png)'%(mode,field))
-            zblanck=pisco_tilt_resequence(field, mode=mode, mode2mass=mode2mass)
-            # z_total,n_total,n_total_dup=pisco_tilt_resequence(field, mode=mode, mode2mass=mode2mass)
+
+            purge('/Users/taweewat/Documents/red_sequence/pisco_color_plots/'\
+                ,r'(redsq_%s_all_.*%s.*png)'%(mode,field))
             
+            # pisco_tilt_resequence(field, mode='psf', mode2mass='')
+            z_total=pisco_tilt_resequence(field, mode=mode, mode2mass=mode2mass)
             # z_total_all.append(z_total)
             # n_total_all.append(n_total)
             # n_total_dup_all.append(n_total_dup)
@@ -1718,15 +1543,15 @@ if __name__ == "__main__":
             pisco_photometry_psf_v4(field, mode=mode, mode2mass=mode2mass, slr=slr_param)
             purge('/Users/taweewat/Documents/red_sequence/pisco_color_plots/'\
                 ,r'(redsq_%s_all_.*%s.*png)'%(mode,field))
-            z_total,n_total,n_total_dup=pisco_tilt_resequence(field, mode=mode, mode2mass=mode2mass)
-            z_total_all.append(z_total)
-            n_total_all.append(n_total)
-            n_total_dup_all.append(n_total_dup)
-            pisco_combine_imgs(field, mode=mode, mode2mass=mode2mass)
-            pickle.dump( [z_total_all,n_total_all,n_total_dup_all], open( "pickle_all_richness_%s.pickle"%extra_name, "wb" ) )
-            print 'save pickle fie at', "pickle_all_richness_%s.pickle" % extra_name
+            z_total=pisco_tilt_resequence(field, mode=mode, mode2mass=mode2mass)
+            # z_total_all.append(z_total)
+            # n_total_all.append(n_total)
+            # n_total_dup_all.append(n_total_dup)
+            # pisco_combine_imgs(field, mode=mode, mode2mass=mode2mass)
+            # pickle.dump( [z_total_all,n_total_all,n_total_dup_all], open( "pickle_all_richness_%s.pickle"%extra_name, "wb" ) )
+            # print 'save pickle fie at', "pickle_all_richness_%s.pickle" % extra_name
     
-        # purge('final', "proj_coadd_c%s_.*\.fits" % field)
+        purge('final', "proj_coadd_c%s_.*\.fits" % field)
         purge('.', "proto_psf_%s_.*\.fits" % field)
         purge('.', "samp_psf_%s_.*\.fits" % field)
         purge('.', "resi_psf_%s_.*\.fits" % field)

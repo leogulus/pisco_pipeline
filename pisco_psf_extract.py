@@ -46,6 +46,19 @@ def list_file_name_seeing(dir, name, end=0, startdir=0):
         print 'Cannot find the files'
     return names
 
+
+def find_seeing_fits(field):
+    home='/Users/taweewat/Documents/pisco_code/'
+    dirs=['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/',\
+    'ut171209/','ut171212/','ut190412/','ut190413/']
+    myReg=re.compile(r'(%s_A).*'%field)
+    for di in dirs:
+        dir=home+di
+        for text in os.listdir(dir):
+            if myReg.search(text) != None:
+                seeing=float(fits.open(dir+myReg.search(text).group())[0].header['FWHM1'])
+    return seeing
+
 ##------
 
 
@@ -58,12 +71,13 @@ band = str(sys.argv[2])
 
 with open("pisco_pipeline/params.yaml", 'r') as stream:
     try:
-        param=yaml.load(stream)
+        param=yaml.load(stream, Loader=yaml.FullLoader)
     except yaml.YAMLError as exc:
         print(exc)
 
-seeing = float(fits.open(list_file_name_seeing(
-    '/Users/taweewat/Documents/pisco_code/', field, startdir='ut')[0])[0].header['FWHM1'])
+# seeing = float(fits.open(list_file_name_seeing(
+#     '/Users/taweewat/Documents/pisco_code/', field, startdir='ut')[0])[0].header['FWHM1'])
+seeing=find_seeing_fits(field)
 
 # df_see=pd.read_csv('/Users/taweewat/Documents/red_sequence/total_chips_field_seeing.csv',index_col=0)
 # if field[0:5]=='CHIPS':
@@ -82,8 +96,17 @@ seeing = float(fits.open(list_file_name_seeing(
 # print 'projecting from %s band to i band the fits file '%band + outname
 # fits.writeto(outname, im1, header, overwrite=True)
 
-cmd='sex final/coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PIXEL_SCALE 0.22 -PHOT_APERTURES 15'%\
-(field,band,'sex_psf.param','psf_%s_%s.fits'%(field,band),str(seeing),str(param['satur_level_%s'%band]))
+pxscale=0.11
+minarea=1.7
+
+# cmd='sex final/coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PIXEL_SCALE %s -PHOT_APERTURES 15'%\
+# (field,band,'sex_psf.param','psf_%s_%s.fits'%(field,band),str(seeing),str(param['satur_level_%s'%band]),str(pxscale))
+
+
+cmd='sex final/coadd_c%s_%s.fits -c pisco_pipeline/config.sex -PARAMETERS_NAME pisco_pipeline/%s -CATALOG_NAME %s -SEEING_FWHM %s -SATUR_LEVEL %s -PHOT_APERTURES 23 -PIXEL_SCALE %s -DETECT_MINAREA %s'%\
+(field,band,'sex_psf.param','psfex_output/psf_%s_%s.fits'%(field,band),str(seeing),str(param['satur_level_%s_psf'%band]),str(pxscale),str(1.1/minarea*np.pi*(seeing/pxscale)**2)) 
+
+
 print cmd
 sub = subprocess.check_call(shlex.split(cmd))
 

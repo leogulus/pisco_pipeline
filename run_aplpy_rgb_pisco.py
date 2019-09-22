@@ -119,7 +119,7 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
     # img.show_markers(RA, DEC, marker='x', s=150, lw=0.4, layer='markers', edgecolor='white', facecolor='white')
     # if mode=='field':
         # img.show_markers(RA_M, DEC_M, marker='P', s=90, lw=2, layer='markers2', edgecolor='red', facecolor='none')
-    img.show_markers(RA_W, DEC_W, marker='o', s=150, lw=0.4, layer='markers3', edgecolor='white', facecolor='none')
+    # img.show_markers(RA_W, DEC_W, marker='o', s=150, lw=0.4, layer='markers3', edgecolor='white', facecolor='none')
     img.set_theme('publication')
     img.axis_labels.hide()
     img.ticks.hide()
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     # all_names = ['CHIPS0132-1608']
 
     dirs = ['ut170103/','ut170104/','ut170619/','ut170621/','ut170624/','ut171208/','ut171209/','ut171212/']
+    dirs = ['ut190412/','ut190413']
     home='/Users/taweewat/Documents/pisco_code/'
     names=[]
     myReg=re.compile(r'(CHIPS\d{4}[+-]\d{4})|(Field\d{3})')
@@ -233,12 +234,17 @@ if __name__ == "__main__":
             if myReg.search(text) != None:
                 names.append(myReg.search(text).group())
     all_fields=list(set(names))
-    all_names=all_fields
-    all_fields = ['CHIPS2223-3455']
+    # all_fields = ['CHIPS1950-4000']
 
+    all_fields=['SDSS123', 'SDSS501', 'SDSS603']
     all_fields_cut = all_fields[:]
+
     for i, name in enumerate(all_fields_cut):
         print str(i) + '/' + str(len(all_fields_cut)), name
+
+        if name in ['CHIPS1933-1511']:
+            continue
+
         if name=='CHIPS2249-2808':
             name='CHIPS2227-4333'
         elif name=='CHIPS2246-2854':
@@ -255,49 +261,57 @@ if __name__ == "__main__":
         elif name[0:4] == 'SDSS':
             mode = 'sdss'
 
-        if mode == 'chips':
-            redshift = base[base.chips == name].redshift.values[0]
-            RA = base[base.chips == name].ra.values[0]
-            DEC = base[base.chips == name].dec.values[0]
-            RA_W = base[base.chips == name].ra_w.values[0]
-            DEC_W = base[base.chips == name].dec_w.values[0]
-
-        elif mode == 'field':
-            redshift = base[base.name == name].redshift.values[0]
-            RA = base[base.name == name].ra.values[0]
-            DEC = base[base.name == name].dec.values[0]
-            RA0 = base[base.name == name].RA0.values[0]
-            DEC0 = base[base.name == name].DEC0.values[0]
-            RA_W = base[base.name == name].ra_w.values[0]
-            DEC_W = base[base.name == name].dec_w.values[0]
-            RA_M = base[base.name == name].ra_m.values[0]
-            DEC_M = base[base.name == name].dec_m.values[0]
-        elif mode == 'pks':
-            redshift=0.2230
-            RA = 209.0225
-            DEC = -34.3530556
-        elif mode == 'sdss':
-            de = pd.read_csv(
-                '/Users/taweewat/Documents/xray_project/ned-result/final_sdss_cut5.csv', index_col=0)
-            RA = de[de.name == name].RA.values[0]
-            DEC = de[de.name == name].DEC.values[0]
-            redshift = de[de.name == name].redshift.values[0]
+        #for new targets ut190412
+        base=pd.read_csv('/Users/taweewat/Documents/xray_project/ned-result/total_776_new_pan.csv',index_col=0)
 
         if name=='CHIPS2227-4333':
             name='CHIPS2249-2808'
         elif name=='CHIPS2223-3455':
             name='CHIPS2246-2854'
 
+
+        # if name=='CHIPS1423-3125':
+        #     RA,DEC=215.88332999999997,-31.423749999999998
+        # elif name=='CHIPS2007-4434':
+        #     RA,DEC=301.98419,-44.58055
+        # elif name=='CHIPS1605-3115':
+        #     RA,DEC=241.4466667,-31.2577778
+        # else: 
+        #     RA = base[base.chips == name].ra.values[0]
+        #     DEC = base[base.chips == name].dec.values[0] 
+
+        # if mode == 'chips':
+        #     redshift = base[base.chips == name].redshift.values[0]
+        #     RA = base[base.chips == name].ra.values[0]
+        #     DEC = base[base.chips == name].dec.values[0]
+        #     RA_W = base[base.chips == name].ra_w.values[0]
+        #     DEC_W = base[base.chips == name].dec_w.values[0]
+        # elif mode == 'field':
+        #     redshift = base[base.name == name].redshift.values[0]
+        #     RA = base[base.name == name].ra.values[0]
+        #     DEC = base[base.name == name].dec.values[0]
+        #     RA0 = base[base.name == name].RA0.values[0]
+        #     DEC0 = base[base.name == name].DEC0.values[0]
+        #     RA_W = base[base.name == name].ra_w.values[0]
+        #     DEC_W = base[base.name == name].dec_w.values[0]
+        #     RA_M = base[base.name == name].ra_m.values[0]
+        #     DEC_M = base[base.name == name].dec_m.values[0]
+        # elif mode == 'pks':
+        #     redshift=0.2230
+        #     RA = 209.0225
+        #     DEC = -34.3530556
+        
+        if mode == 'sdss':
+            de = pd.read_csv(
+                '/Users/taweewat/Documents/xray_project/ned-result/final_sdss_cut5.csv', index_col=0)
+            RA = de[de.name == name].RA.values[0]
+            DEC = de[de.name == name].DEC.values[0]
+            redshift = de[de.name == name].redshift.values[0]
+
+
         print i, name
-        ## make image with ds9 with the center is crosshaired
-        # cmd = "ds9 -zscale -crosshair %f %f wcs fk5 -rgb -red final/coadd_c%s_i.fits -green final/coadd_c%s_r.fits"+"
-        # -blue final/coadd_c%s_g.fits -zoom out -saveimage Chips_images/%s_ds9.eps -exit" % \
-        #     (RA, DEC, name, name, name, name)
-        # print cmd
-        # sub = subprocess.check_call(shlex.split(cmd))
 
         ## make jpeg image from the python script with the scale size
-
         global filename
         filename = 'Chips_images/aplpy4_%s_img4.jpeg' % name
         purge('.',filename)
@@ -305,7 +319,9 @@ if __name__ == "__main__":
         if not os.path.isfile(filename):
             print i, 'working on the the image %s'%filename
             if mode=='chips':
-                a=make_images_aplpy(name, RA, DEC, redshift, mode, RA_W, 0, DEC_W, 0)
+                # a=make_images_aplpy(name, RA, DEC, redshift, mode, RA_W, 0, DEC_W, 0)
+                a=make_images_aplpy(name, RA, DEC, -1, mode, 0, 0, 0, 0)
+
             elif mode=='field':
                 a=make_images_aplpy(name, RA, DEC, redshift, mode, RA_W, RA_M, DEC_W, DEC_M)
             elif mode=='pks':

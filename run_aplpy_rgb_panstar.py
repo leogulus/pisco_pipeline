@@ -46,16 +46,16 @@ def list_file_name(dir, name, end=0):
 
 def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., DEC_W=0., DEC_M=0.):
 
-    data, header = fits.getdata('/Users/taweewat/Documents/xray_project/panstar/panstar_%s_i.fits'%name, header=True)
-    fits.writeto('/Users/taweewat/Documents/xray_project/panstar/panstar_%s_i0.fits'%name, data, header=header, overwrite=True)
-    data, header = fits.getdata('/Users/taweewat/Documents/xray_project/panstar/panstar_%s_r.fits'%name, header=True)
-    fits.writeto('/Users/taweewat/Documents/xray_project/panstar/panstar_%s_r0.fits'%name, data, header=header, overwrite=True)
-    data, header = fits.getdata('/Users/taweewat/Documents/xray_project/panstar/panstar_%s_g.fits'%name, header=True)
-    fits.writeto('/Users/taweewat/Documents/xray_project/panstar/panstar_%s_g0.fits'%name, data, header=header, overwrite=True)
+    data, header = fits.getdata('/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_i.fits'%name, header=True)
+    fits.writeto('/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_i0.fits'%name, data, header=header, overwrite=True)
+    data, header = fits.getdata('/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_r.fits'%name, header=True)
+    fits.writeto('/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_r0.fits'%name, data, header=header, overwrite=True)
+    data, header = fits.getdata('/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_g.fits'%name, header=True)
+    fits.writeto('/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_g0.fits'%name, data, header=header, overwrite=True)
 
-    aplpy.make_rgb_cube(['/Users/taweewat/Documents/xray_project/panstar/panstar_%s_i0.fits'%name,\
-                     '/Users/taweewat/Documents/xray_project/panstar/panstar_%s_r0.fits'%name,\
-                     '/Users/taweewat/Documents/xray_project/panstar/panstar_%s_g0.fits'%name],\
+    aplpy.make_rgb_cube(['/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_i0.fits'%name,\
+                     '/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_r0.fits'%name,\
+                     '/Users/taweewat/Documents/red_sequence/panstar/panstar_%s_g0.fits'%name],\
                     'test.fits', north=True)
 
     g=fits.open('test.fits')[0].data[2]
@@ -114,9 +114,9 @@ def make_images_aplpy(name, RA, DEC, redshift, mode='chips',  RA_W=0., RA_M=0., 
     img.scalebar.set_color('white')
     img.recenter(RA, DEC, width=0.067, height=0.067)
     # img.show_markers(RA, DEC, marker='x', s=200, lw=0.5, layer='markers', edgecolor='white', facecolor='white')
-    img.show_markers(RA_W, DEC_W, marker='o', s=200, lw=0.5, layer='markers3', edgecolor='white', facecolor='none')
+    # img.show_markers(RA_W, DEC_W, marker='o', s=200, lw=0.5, layer='markers3', edgecolor='white', facecolor='none')
 
-    img.save('Chips_images/aplpy_panstar_%s_img.jpeg'%name, adjust_bbox=True, dpi=120)
+    img.save('Chips_images/aplpy_panstar2_%s_img.jpeg'%name, adjust_bbox=True, dpi=120)
 
     # purge('/Users/taweewat/Documents/xray_project/panstar/', 'panstar_%s_i0.fits'%name)
     # purge('/Users/taweewat/Documents/xray_project/panstar/', 'panstar_%s_r0.fits'%name)
@@ -220,7 +220,7 @@ if __name__ == "__main__":
                # 'Field028','Field029','Field030','Field033','Field034','Field036','Field037','Field038','Field039','Field040','Field042','Field044','Field045']
 
     # for i, name in enumerate(np.append(all_names[:43],all_names[44:])):
-    all_names=['CHIPS1011-0505','CHIPS1911+4455']
+    all_names=['CHIPS1911+4455']
 
     for i, name in enumerate(all_names[:]):
     # for i, name in enumerate(all_names[ind:ind+1]):
